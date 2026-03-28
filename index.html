@@ -198,19 +198,35 @@ const AddModal=({onClose,onAdd,existingTitles})=>{
     let film={...EMPTY,titolo:query};
     let trovato=false;
 
-    // iTunes Search API — funziona dal browser, CORS ok
+    // Mappa generi inglese → italiano
+    const genreIT={"Action":"Azione","Comedy":"Commedia","Drama":"Drammatico","Thriller":"Thriller","Horror":"Horror","Romance":"Sentimentale","Animation":"Animazione","Documentary":"Documentario","Biography":"Biografico","History":"Storico","Musical":"Musicale","Fantasy":"Fantasy","Science Fiction":"Fantascienza","Adventure":"Avventura","Family":"Family","Crime":"Poliziesco","War":"Guerra","Western":"Western","Mystery":"Giallo","Sport":"Sportivo"};
+    // Mappa codici paese → italiano
+    const paeseIT={"ITA":"Italia","USA":"USA","GBR":"Gran Bretagna","FRA":"Francia","DEU":"Germania","ESP":"Spagna","JPN":"Giappone","IRL":"Irlanda","BEL":"Belgio","DNK":"Danimarca","NOR":"Norvegia","SWE":"Svezia","CHE":"Svizzera","POL":"Polonia","AUT":"Austria","NLD":"Olanda","CAN":"Canada","AUS":"Australia","KOR":"Corea del Sud","TWN":"Taiwan","CYP":"Cipro","ROU":"Romania","TUN":"Tunisia","QAT":"Qatar","MKD":"Macedonia del Nord"};
+
+    // iTunes IT — prima prova con country=it
     try{
-      const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&country=it&media=movie&entity=movie&limit=5&lang=it_it`);
+      const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&country=it&media=movie&entity=movie&limit=5`);
       const d=await r.json();
       if(d.results&&d.results.length){
         const b=d.results[0];
         const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
-        film={...film,titolo:b.trackName||query,data:(b.releaseDate||"").slice(0,10),genere:b.primaryGenreName||"",durata:min?min+" min":"",trama:b.longDescription||b.shortDescription||""};
+        const genereEN=b.primaryGenreName||"";
+        const genereITA=genreIT[genereEN]||genereEN;
+        const paeseCode=(b.country||"").toUpperCase();
+        const paeseITA=paeseIT[paeseCode]||paeseCode;
+        film={...film,
+          titolo:b.trackName||query,
+          data:(b.releaseDate||"").slice(0,10),
+          genere:genereITA,
+          paese:paeseITA,
+          durata:min?min+" min":"",
+          trama:b.longDescription||b.shortDescription||""
+        };
         trovato=true;
       }
-    }catch(e){console.log("iTunes:",e.message);}
+    }catch(e){console.log("iTunes IT:",e.message);}
 
-    // iTunes senza country per film italiani non trovati
+    // iTunes globale — fallback se non trovato con country=it
     if(!trovato){
       try{
         const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=movie&entity=movie&limit=5`);
@@ -218,10 +234,21 @@ const AddModal=({onClose,onAdd,existingTitles})=>{
         if(d.results&&d.results.length){
           const b=d.results[0];
           const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
-          film={...film,titolo:b.trackName||query,data:(b.releaseDate||"").slice(0,10),genere:b.primaryGenreName||"",durata:min?min+" min":"",trama:b.longDescription||b.shortDescription||""};
+          const genereEN=b.primaryGenreName||"";
+          const genereITA=genreIT[genereEN]||genereEN;
+          const paeseCode=(b.country||"").toUpperCase();
+          const paeseITA=paeseIT[paeseCode]||paeseCode;
+          film={...film,
+            titolo:b.trackName||query,
+            data:(b.releaseDate||"").slice(0,10),
+            genere:genereITA,
+            paese:paeseITA,
+            durata:min?min+" min":"",
+            trama:b.longDescription||b.shortDescription||""
+          };
           trovato=true;
         }
-      }catch(e){console.log("iTunes2:",e.message);}
+      }catch(e){console.log("iTunes globale:",e.message);}
     }
 
     // Wikipedia italiana — per la trama
@@ -235,9 +262,23 @@ const AddModal=({onClose,onAdd,existingTitles})=>{
         const pD=await pR.json();
         const page=Object.values((pD.query&&pD.query.pages)||{})[0];
         if(page&&page.extract&&page.extract.length>50){
-          const frasi=page.extract.replace(/\n/g," ").split(". ").filter(s=>s.length>15);
+          const testo=page.extract.replace(/\n/g," ").trim();
+          const frasi=testo.split(". ").filter(s=>s.length>15);
           const trama=frasi.slice(0,4).join(". ")+(frasi.length>0?".":"");
           if(!film.trama||trama.length>film.trama.length)film={...film,trama};
+          // Prova a estrarre durata dal testo Wikipedia (es. "della durata di 120 minuti")
+          if(!film.durata){
+            const mDur=testo.match(/della durata di (\d+) minut/);
+            if(mDur)film={...film,durata:mDur[1]+" min"};
+          }
+          // Prova a estrarre genere dal testo Wikipedia (es. "film del 2023 di genere drammatico")
+          if(!film.genere){
+            const mGen=testo.match(/di genere ([a-zA-ZÀ-ÿ ,]+?)(?:,| diretto| con )/i);
+            if(mGen){
+              const g=mGen[1].trim();
+              if(g.length<50)film={...film,genere:g.charAt(0).toUpperCase()+g.slice(1)};
+            }
+          }
           if(!trovato){
             film={...film,titolo:best.title.replace(/ - [Ff]ilm.*/,"").replace(/ \([Ff]ilm.*?\)/,"").trim()};
             trovato=true;
