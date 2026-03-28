@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cinema Dashboard</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d0d0f;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  input,select,textarea,button{font-family:inherit}
+  input:focus,textarea:focus{outline:none;border-color:rgba(232,184,75,0.4)!important}
+  ::-webkit-scrollbar{width:5px;height:5px;background:#0d0d0f}
+  ::-webkit-scrollbar-thumb{background:#1e1e28;border-radius:3px}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+// ─── DATI FILM BASE ────────────────────────────────────────────────────────
+const FILMS_RAW = [
+  {titolo:"Il Diavolo Veste Prada 2",data:"2026-04-29",genere:"Commedia",paese:"USA",durata:"",distribuzione:"The Walt Disney Company Italia",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Michael",data:"2026-04-23",genere:"Biografico, Drammatico, Musicale",paese:"USA",durata:"",distribuzione:"Universal Pictures",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"È l'Ultima Battuta?",data:"2026-04-02",genere:"Commedia, Drammatico",paese:"USA",durata:"124 min",distribuzione:"The Walt Disney Company Italia",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Teresa - La Madre degli Ultimi",data:"2026-04-02",genere:"Drammatico",paese:"Macedonia del Nord, Belgio, Svezia, Danimarca",durata:"103 min",distribuzione:"Adler Entertainment",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Super Mario Galaxy - Il Film",data:"2026-04-01",genere:"Animazione, Avventura",paese:"Giappone, USA",durata:"",distribuzione:"Universal Pictures",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:"x"},
+  {titolo:"Cena di Classe",data:"2026-03-26",genere:"Commedia",paese:"Italia",durata:"",distribuzione:"Medusa Film",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"The History of Sound - Sulle Note di un Amore",data:"2026-03-26",genere:"Drammatico, Sentimentale",paese:"USA",durata:"127 min",distribuzione:"Universal Pictures",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Ella McCay - Perfettamente Imperfetta",data:"2026-03-19",genere:"Commedia, Drammatico",paese:"USA",durata:"115 min",distribuzione:"The Walt Disney Company Italia",mym:3.5,cs:3.2,media:3.35,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Idoli - Fino all'ultima corsa",data:"2026-03-19",genere:"Drammatico",paese:"Spagna, Italia",durata:"126 min",distribuzione:"Warner Bros. Pictures Italia",mym:null,cs:3.3,media:3.3,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"L'Ultima Missione: Project Hail Mary",data:"2026-03-19",genere:"Fantascienza",paese:"USA",durata:"156 min",distribuzione:"Eagle Pictures",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"La Lezione",data:"2026-03-05",genere:"Drammatico",paese:"Italia",durata:"107 min",distribuzione:"Vision Distribution",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Un Bel Giorno",data:"2026-03-05",genere:"Commedia",paese:"Italia",durata:"93 min",distribuzione:"01 Distribution",mym:2.6,cs:3.5,media:3.05,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Chopin, Notturno a Parigi",data:"2026-02-26",genere:"Biografico, Drammatico",paese:"Polonia",durata:"133 min",distribuzione:"Europictures",mym:2.6,cs:3.4,media:3.0,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Rental Family - Nelle Vite degli Altri",data:"2026-02-19",genere:"Commedia, Drammatico",paese:"Giappone, USA",durata:"103 min",distribuzione:"The Walt Disney Company Italia",mym:3.8,cs:3.6,media:3.7,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Domani Interrogo",data:"2026-02-19",genere:"Commedia, Drammatico",paese:"Italia",durata:"95 min",distribuzione:"Vision Distribution",mym:3.2,cs:3.8,media:3.5,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Il Mago del Cremlino - Le Origini di Putin",data:"2026-02-12",genere:"Drammatico, Thriller, Storico",paese:"USA, Gran Bretagna, Francia",durata:"120 min",distribuzione:"01 Distribution",mym:3.2,cs:3.6,media:3.4,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Cime Tempestose",data:"2026-02-12",genere:"Drammatico, Sentimentale",paese:"USA, Gran Bretagna",durata:"136 min",distribuzione:"Warner Bros. Pictures Italia",mym:2.3,cs:3.5,media:2.9,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"HAMNET - Nel nome del Figlio",data:"2026-02-05",genere:"Biografico, Drammatico, Storico",paese:"Gran Bretagna",durata:"125 min",distribuzione:"Universal Pictures",mym:3.8,cs:3.7,media:3.75,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Le Cose non Dette",data:"2026-01-29",genere:"Drammatico",paese:"Italia",durata:"114 min",distribuzione:"01Distribution",mym:2.9,cs:3.5,media:3.2,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"2 Cuori e 2 Capanne",data:"2026-01-22",genere:"Commedia",paese:"Italia",durata:"108 min",distribuzione:"Vision Distribution",mym:3.0,cs:3.3,media:3.15,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:3.7},
+  {titolo:"Marty Supreme",data:"2026-01-22",genere:"Commedia",paese:"USA",durata:"149 min",distribuzione:"I Wonder Pictures",mym:3.5,cs:3.7,media:3.6,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Sentimental Value",data:"2026-01-22",genere:"Commedia, Drammatico",paese:"Norvegia, Germania, Danimarca",durata:"133 min",distribuzione:"Teodora Film e Lucky Red",mym:3.7,cs:3.7,media:3.7,fatto:"",cineforum:"x",cinefamiglia:""},
+  {titolo:"La Grazia",data:"2026-01-15",genere:"Drammatico",paese:"Italia",durata:"131 min",distribuzione:"PiperFilm",mym:4.4,cs:4.2,media:4.3,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:3.7},
+  {titolo:"Song Sung Blue - Una Melodia d'Amore",data:"2026-01-08",genere:"Musicale, Biografico",paese:"USA",durata:"133 min",distribuzione:"Universal Pictures International Italia",mym:3.0,cs:3.3,media:3.15,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"No Other Choice - Non c'è altra scelta",data:"2026-01-01",genere:"Commedia, Poliziesco, Drammatico",paese:"Corea del Sud",durata:"139 min",distribuzione:"Lucky Red",mym:3.5,cs:3.9,media:3.7,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Buen Camino",data:"2025-12-25",genere:"Commedia",paese:"Italia",durata:"90 min",distribuzione:"Medusa Film",mym:2.5,cs:3.8,media:3.15,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.0},
+  {titolo:"Primavera",data:"2025-12-25",genere:"Biografico, Storico, Musicale",paese:"Italia, Francia",durata:"110 min",distribuzione:"Warner Bros. Pictures Italia",mym:3.8,cs:4.0,media:3.9,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.4},
+  {titolo:"La Mia Famiglia a Taipei",data:"2025-12-22",genere:"Drammatico",paese:"Taiwan, Francia",durata:"108 min",distribuzione:"I Wonder Pictures",mym:3.4,cs:3.5,media:3.45,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:3.1},
+  {titolo:"Norimberga",data:"2025-12-18",genere:"Drammatico, Storico, Thriller",paese:"USA",durata:"148 min",distribuzione:"Eagle Pictures",mym:2.8,cs:3.8,media:3.3,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.5},
+  {titolo:"Gioia Mia",data:"2025-12-11",genere:"Drammatico, Family",paese:"Italia",durata:"90 min",distribuzione:"Fandango Distribuzioni",mym:3.4,cs:3.6,media:3.5,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.0},
+  {titolo:"Un Inverno in Corea",data:"2025-12-11",genere:"Drammatico",paese:"Francia, Corea del Sud",durata:"104 min",distribuzione:"Wanted Cinema",mym:3.0,cs:3.5,media:3.25,fatto:"",cineforum:"x",cinefamiglia:"",voto_pubblico:3.0},
+  {titolo:"L'Anno Nuovo che non arriva",data:"2025-12-04",genere:"Drammatico, Commedia",paese:"Romania",durata:"138 min",distribuzione:"Trent Film",mym:4.1,cs:3.5,media:3.8,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Eternity",data:"2025-12-04",genere:"Commedia, Fantasy, Sentimentale",paese:"USA",durata:"112 min",distribuzione:"I Wonder Pictures",mym:3.4,cs:3.2,media:3.3,fatto:"",cineforum:"x",cinefamiglia:"",voto_pubblico:2.8},
+  {titolo:"Breve Storia d'Amore",data:"2025-11-27",genere:"Commedia",paese:"Italia",durata:"98 min",distribuzione:"01 Distribution",mym:2.9,cs:3.5,media:3.2,fatto:"",cineforum:"x",cinefamiglia:"",voto_pubblico:3.3},
+  {titolo:"Oi Vita Mia",data:"2025-11-27",genere:"Commedia",paese:"Italia",durata:"113 min",distribuzione:"Piper Film",mym:3.3,cs:3.6,media:3.45,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.0},
+  {titolo:"Zootropolis 2",data:"2025-11-26",genere:"Animazione, Azione, Avventura",paese:"USA",durata:"",distribuzione:"The Walt Disney Company Italia",mym:3.5,cs:4.1,media:3.8,fatto:"",cineforum:"",cinefamiglia:"x"},
+  {titolo:"Il Maestro",data:"2025-11-13",genere:"Drammatico",paese:"Italia",durata:"125 min",distribuzione:"Vision Distribution",mym:3.2,cs:3.5,media:3.35,fatto:"",cineforum:"x",cinefamiglia:"",voto_pubblico:3.6},
+  {titolo:"La Voce di Hind Rajab",data:"2025-09-25",genere:"Drammatico",paese:"Tunisia, Francia",durata:"89 min",distribuzione:"I Wonder Pictures",mym:4.5,cs:4.6,media:4.55,fatto:"x",cineforum:"x",cinefamiglia:"",voto_pubblico:4.3},
+  {titolo:"The Life of Chuck",data:"2025-09-18",genere:"Drammatico, Fantascienza, Fantasy",paese:"USA",durata:"110 min",distribuzione:"Eagle Pictures",mym:4.0,cs:3.6,media:3.8,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:3.3},
+  {titolo:"Tutto Quello che Resta di Te",data:"2025-09-18",genere:"Drammatico",paese:"Cipro, Germania",durata:"145 min",distribuzione:"Officine UBU",mym:4.0,cs:3.7,media:3.85,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:4.4},
+  {titolo:"Springsteen: Liberami dal Nulla",data:"2025-10-23",genere:"Drammatico, Biografico, Musicale",paese:"USA",durata:"112 min",distribuzione:"The Walt Disney Company Italia",mym:3.7,cs:3.7,media:3.7,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:3.9},
+  {titolo:"Per Te",data:"2025-10-17",genere:"Drammatico",paese:"Italia",durata:"115 min",distribuzione:"Piper Film",mym:3.0,cs:3.6,media:3.3,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.3},
+  {titolo:"Il Professore e il Pinguino",data:"2025-10-09",genere:"Drammatico, Commedia",paese:"Spagna, USA, Gran Bretagna",durata:"111 min",distribuzione:"Eagle Pictures",mym:2.7,cs:3.3,media:3.0,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.1},
+  {titolo:"La Vita Va Così",data:"2025-10-23",genere:"Commedia",paese:"Italia",durata:"120 min",distribuzione:"Medusa Film",mym:2.9,cs:3.8,media:3.35,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.3},
+  {titolo:"L'Isola di Andrea",data:"2025-10-02",genere:"Drammatico",paese:"Italia, Francia",durata:"105 min",distribuzione:"Europictures",mym:4.0,cs:3.3,media:3.65,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Material Love",data:"2025-09-04",genere:"Commedia, Sentimentale",paese:"USA, Finlandia",durata:"109 min",distribuzione:"Eagle Pictures",mym:2.5,cs:3.1,media:2.8,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:2.8},
+  {titolo:"Enzo",data:"2025-08-28",genere:"Drammatico",paese:"Francia",durata:"102 min",distribuzione:"Lucky Red",mym:3.6,cs:3.3,media:3.45,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:2.8},
+  {titolo:"L'Ultimo Turno",data:"2025-08-20",genere:"Drammatico",paese:"Svizzera, Germania",durata:"92 min",distribuzione:"BIM Distribuzione",mym:3.8,cs:3.9,media:3.85,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:3.7},
+  {titolo:"Afrodite",data:"2025-07-31",genere:"Thriller, Drammatico, Sentimentale",paese:"Italia",durata:"102 min",distribuzione:"Altre Storie",mym:3.5,cs:4.1,media:3.8,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Una Sconosciuta a Tunisi",data:"2025-07-24",genere:"Drammatico",paese:"Francia, Tunisia, Qatar",durata:"123 min",distribuzione:"I Wonder Pictures",mym:3.1,cs:3.3,media:3.2,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:3.8},
+  {titolo:"Tre Amiche",data:"2025-06-19",genere:"Commedia, Drammatico, Sentimentale",paese:"Francia",durata:"117 min",distribuzione:"Lucky Red",mym:3.3,cs:4.0,media:3.65,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Le Assaggiatrici",data:"2025-03-27",genere:"Drammatico",paese:"Italia, Svizzera, Belgio",durata:"",distribuzione:"Vision Distribution",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.1},
+  {titolo:"La Vita da Grandi",data:"2025-04-03",genere:"Drammatico",paese:"Italia",durata:"",distribuzione:"01 Distribution",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.2},
+  {titolo:"Il Nibbio",data:"2025-03-06",genere:"Drammatico, Biografico",paese:"Italia, Belgio",durata:"109 min",distribuzione:"Notorious Pictures",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.3},
+  {titolo:"A Real Pain",data:"2025-02-27",genere:"Commedia, Drammatico",paese:"USA",durata:"90 min",distribuzione:"The Walt Disney Company Italia",mym:3.2,cs:3.7,media:3.45,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:2.9},
+  {titolo:"A Complete Unknown",data:"2025-02-23",genere:"Biografico, Drammatico, Musicale",paese:"USA",durata:"141 min",distribuzione:"",mym:3.7,cs:4.0,media:3.85,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.0},
+  {titolo:"FolleMente",data:"2025-02-20",genere:"Commedia",paese:"Italia",durata:"97 min",distribuzione:"01 Distribution",mym:3.2,cs:3.7,media:3.45,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:3.9},
+  {titolo:"Better Man",data:"2025-02-01",genere:"Biografico, Musicale",paese:"USA",durata:"134 min",distribuzione:"",mym:3.7,cs:4.5,media:4.1,fatto:"",cineforum:"",cinefamiglia:""},
+  {titolo:"Il Tempo che ci vuole",data:"2024-09-26",genere:"Drammatico",paese:"Italia",durata:"110 min",distribuzione:"",mym:4.2,cs:4.3,media:4.25,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:3.5},
+  {titolo:"Perfect Days",data:"2024-01-04",genere:"Drammatico",paese:"Giappone",durata:"124 min",distribuzione:"",mym:4.1,cs:4.0,media:4.05,fatto:"",cineforum:"x",cinefamiglia:"",voto_pubblico:3.0},
+  {titolo:"Wonder: White Bird",data:"2024-01-04",genere:"Drammatico",paese:"USA",durata:"120 min",distribuzione:"",mym:3.2,cs:3.2,media:3.2,fatto:"",cineforum:"x",cinefamiglia:"x",voto_pubblico:4.5},
+  {titolo:"Conclave",data:"2024-12-19",genere:"Thriller",paese:"USA, Gran Bretagna",durata:"120 min",distribuzione:"",mym:3.3,cs:4.0,media:3.65,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.0},
+  {titolo:"Diamanti",data:"2024-12-19",genere:"Drammatico",paese:"Italia",durata:"",distribuzione:"",mym:null,cs:null,media:null,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.5},
+  {titolo:"Francesca Cabrini",data:"2024-10-13",genere:"Drammatico, Biografico",paese:"USA",durata:"144 min",distribuzione:"",mym:null,cs:4.0,media:4.0,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:4.4},
+  {titolo:"Il Maestro che promise il Mare",data:"2024-09-19",genere:"Drammatico, Biografico",paese:"Spagna",durata:"105 min",distribuzione:"",mym:3.5,cs:4.0,media:3.75,fatto:"x",cineforum:"x",cinefamiglia:"",voto_pubblico:4.4},
+  {titolo:"The Fabelmans",data:"2022-12-22",genere:"Drammatico",paese:"USA",durata:"151 min",distribuzione:"",mym:4.4,cs:4.7,media:4.55,fatto:"x",cineforum:"x",cinefamiglia:"",voto_pubblico:4.1},
+  {titolo:"C'è ancora domani",data:"2023-10-26",genere:"Drammatico",paese:"Italia",durata:"118 min",distribuzione:"",mym:3.8,cs:4.0,media:3.9,fatto:"x",cineforum:"x",cinefamiglia:"",voto_pubblico:4.7},
+  {titolo:"Oppenheimer",data:"2023-08-23",genere:"Drammatico, Biografico, Storico",paese:"USA, Gran Bretagna",durata:"180 min",distribuzione:"",mym:4.0,cs:4.1,media:4.05,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:4.2},
+  {titolo:"Killers of the Flower Moon",data:"2023-10-19",genere:"Drammatico",paese:"USA",durata:"206 min",distribuzione:"",mym:3.8,cs:3.9,media:3.85,fatto:"x",cineforum:"x",cinefamiglia:"",voto_pubblico:3.8},
+  {titolo:"Io Capitano",data:"2023-09-07",genere:"Drammatico",paese:"Italia, Belgio",durata:"121 min",distribuzione:"",mym:3.8,cs:4.1,media:3.95,fatto:"",cineforum:"",cinefamiglia:"",voto_pubblico:4.5},
+  {titolo:"Comandante",data:"2023-10-31",genere:"Drammatico, Storico, Guerra",paese:"Italia",durata:"120 min",distribuzione:"",mym:3.7,cs:3.9,media:3.8,fatto:"x",cineforum:"x",cinefamiglia:"",voto_pubblico:4.5},
+  {titolo:"Close",data:"2023-01-04",genere:"Drammatico",paese:"Belgio, Olanda, Francia",durata:"105 min",distribuzione:"",mym:3.5,cs:4.2,media:3.85,fatto:"x",cineforum:"x",cinefamiglia:"",voto_pubblico:3.7},
+  {titolo:"Il Signore delle Formiche",data:"2022-09-08",genere:"Drammatico",paese:"Italia",durata:"",distribuzione:"",mym:3.7,cs:4.1,media:3.9,fatto:"x",cineforum:"",cinefamiglia:"",voto_pubblico:4.2},
+];
+
+// Dedup
+const seen=new Set();
+const FILMS_BASE=FILMS_RAW.filter(f=>{const k=f.titolo.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+
+// ─── AFFINITY ENGINE ──────────────────────────────────────────────────────
+function computeAffinities(films){
+  const gM={},cM={},dM={};
+  films.forEach(f=>{
+    const v=f.voto_pubblico;if(!v)return;
+    (f.genere||"").split(",").forEach(g=>{g=g.trim();if(!gM[g])gM[g]={s:0,n:0};gM[g].s+=v;gM[g].n++;});
+    (f.paese||"").split(",").forEach(p=>{p=p.trim();if(!cM[p])cM[p]={s:0,n:0};cM[p].s+=v;cM[p].n++;});
+    if(f.durata){const m=parseInt(f.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';if(!dM[b])dM[b]={s:0,n:0};dM[b].s+=v;dM[b].n++;}}
+  });
+  const toSc=(map,mn)=>{const r={};Object.entries(map).forEach(([k,{s,n}])=>{if(n>=mn)r[k]=(s/n-1)/4;});return r;};
+  return{genre:toSc(gM,1),country:toSc(cM,2),duration:toSc(dM,1)};
+}
+const AFF=computeAffinities(FILMS_BASE);
+
+function calcScore(film){
+  let w=0,tw=0;
+  const add=(s,wt)=>{w+=s*wt;tw+=wt;};
+  if(film.voto_pubblico!=null)add((film.voto_pubblico-1)/4,0.40);
+  if(film.media!=null)add(film.media/5,0.30);
+  if(film.genere){const ss=(film.genere||"").split(",").map(g=>AFF.genre[g.trim()]).filter(x=>x!=null);if(ss.length)add(ss.reduce((a,b)=>a+b)/ss.length,0.15);}
+  if(film.paese){const ss=(film.paese||"").split(",").map(p=>AFF.country[p.trim()]).filter(x=>x!=null);if(ss.length)add(ss.reduce((a,b)=>a+b)/ss.length,0.10);}
+  if(film.durata){const m=parseInt(film.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';const ds=AFF.duration[b];if(ds!=null)add(ds,0.05);}}
+  if(tw<0.05)return null;
+  return Math.max(1,Math.min(10,Math.round((w/tw)*9+1)));
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+const SC=v=>!v?"#444":v>=4?"#4ade80":v>=3.5?"#a3e635":v>=3?"#facc15":v>=2.5?"#fb923c":"#f87171";
+const RC=v=>!v?"#444":v>=8?"#4ade80":v>=6?"#a3e635":v>=4?"#facc15":"#f87171";
+const EMPTY={titolo:"",data:"",genere:"",paese:"",durata:"",distribuzione:"",mym:null,cs:null,media:null,cineforum:"",cinefamiglia:"",trama:""};
+
+const LS={
+  get:(k)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
+};
+
+// ─── BADGES ──────────────────────────────────────────────────────────────
+const SBadge=({value,small})=>{
+  if(value==null)return <span style={{color:"#333",fontSize:"11px"}}>—</span>;
+  return <span style={{display:"inline-flex",flexDirection:"column",alignItems:"center",background:"rgba(255,255,255,0.04)",borderRadius:"5px",padding:"2px 5px",minWidth:small?28:34}}>
+    <span style={{fontSize:small?"12px":"13px",fontWeight:700,color:SC(value)}}>{value.toFixed(1)}</span>
+  </span>;
+};
+
+const RBadge=({score})=>{
+  if(score==null)return <span style={{fontSize:"11px",color:"#2a2a35"}}>—</span>;
+  return <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:32,height:32,borderRadius:"50%",fontWeight:800,fontSize:"14px",background:`radial-gradient(circle,${RC(score)}22,${RC(score)}08)`,border:`2px solid ${RC(score)}`,color:RC(score)}}>{score}</span>;
+};
+
+// ─── FILM FORM ────────────────────────────────────────────────────────────
+const FilmForm=({data,onChange})=>(
+  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
+    {[["titolo","Titolo *","text"],["data","Data uscita","date"],["genere","Genere (es. Drammatico, Commedia)","text"],["paese","Paese","text"],["durata","Durata (es. 105 min)","text"],["distribuzione","Distribuzione","text"],["mym","Voto MyMovies (0-5)","number"],["cs","Voto ComingSoon (0-5)","number"]].map(([k,label,type])=>(
+      <div key={k} style={{gridColumn:k==="titolo"||k==="genere"?"1/-1":undefined}}>
+        <label style={{display:"block",fontSize:"10px",color:"#555",marginBottom:3}}>{label}</label>
+        <input type={type} step={type==="number"?"0.1":undefined} min={type==="number"?0:undefined} max={type==="number"?5:undefined}
+          value={data[k]??""} onChange={e=>onChange(k,type==="number"?(e.target.value===""?null:parseFloat(e.target.value)):e.target.value)}
+          style={{width:"100%",boxSizing:"border-box",background:"#1a1a24",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:"6px",padding:"7px 10px",fontSize:"13px"}}/>
+      </div>
+    ))}
+    <div style={{gridColumn:"1/-1"}}>
+      <label style={{display:"block",fontSize:"10px",color:"#555",marginBottom:3}}>Trama</label>
+      <textarea value={data.trama||""} onChange={e=>onChange("trama",e.target.value)} rows={3}
+        placeholder="Breve descrizione della trama..."
+        style={{width:"100%",boxSizing:"border-box",background:"#1a1a24",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:"6px",padding:"7px 10px",fontSize:"12px",resize:"vertical"}}/>
+    </div>
+    {[["cineforum","Cineforum","rgba(129,140,248,0.2)","rgba(129,140,248,0.5)","#818cf8"],["cinefamiglia","Cinefamiglia","rgba(251,191,36,0.2)","rgba(251,191,36,0.5)","#fbbf24"]].map(([k,label,bg,border,color])=>(
+      <div key={k}>
+        <label style={{display:"block",fontSize:"10px",color:"#555",marginBottom:3}}>{label}</label>
+        <button onClick={()=>onChange(k,data[k]==="x"?"":"x")} style={{background:data[k]==="x"?bg:"rgba(255,255,255,0.03)",border:`1px solid ${data[k]==="x"?border:"#2a2a35"}`,color:data[k]==="x"?color:"#555",borderRadius:"6px",padding:"7px",cursor:"pointer",fontSize:"12px",width:"100%"}}>
+          {data[k]==="x"?`✓ ${label}`:label}
+        </button>
+      </div>
+    ))}
+  </div>
+);
+
+// ─── ADD MODAL ────────────────────────────────────────────────────────────
+const AddModal=({onClose,onAdd,existingTitles})=>{
+  const [query,setQuery]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [found,setFound]=useState(null);
+  const [manual,setManual]=useState(false);
+  const [form,setForm]=useState({...EMPTY});
+  const [err,setErr]=useState("");
+  const ref=useRef(null);
+  useEffect(()=>ref.current?.focus(),[]);
+
+  const search=async()=>{
+    if(!query.trim())return;
+    setBusy(true);setErr("");setFound(null);
+    let film={...EMPTY,titolo:query};
+    let trovato=false;
+
+    // iTunes Search API — funziona dal browser, CORS ok
+    try{
+      const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&country=it&media=movie&entity=movie&limit=5&lang=it_it`);
+      const d=await r.json();
+      if(d.results&&d.results.length){
+        const b=d.results[0];
+        const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
+        film={...film,titolo:b.trackName||query,data:(b.releaseDate||"").slice(0,10),genere:b.primaryGenreName||"",durata:min?min+" min":"",trama:b.longDescription||b.shortDescription||""};
+        trovato=true;
+      }
+    }catch(e){console.log("iTunes:",e.message);}
+
+    // iTunes senza country per film italiani non trovati
+    if(!trovato){
+      try{
+        const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=movie&entity=movie&limit=5`);
+        const d=await r.json();
+        if(d.results&&d.results.length){
+          const b=d.results[0];
+          const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
+          film={...film,titolo:b.trackName||query,data:(b.releaseDate||"").slice(0,10),genere:b.primaryGenreName||"",durata:min?min+" min":"",trama:b.longDescription||b.shortDescription||""};
+          trovato=true;
+        }
+      }catch(e){console.log("iTunes2:",e.message);}
+    }
+
+    // Wikipedia italiana — per la trama
+    try{
+      const sR=await fetch(`https://it.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query+" film")}&format=json&origin=*&srlimit=5`);
+      const sD=await sR.json();
+      const results=(sD.query&&sD.query.search)||[];
+      const best=results.find(r=>r.title.toLowerCase().includes("film")||r.snippet.toLowerCase().includes("regia")||r.snippet.toLowerCase().includes("diretto"))||results[0];
+      if(best){
+        const pR=await fetch(`https://it.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(best.title)}&format=json&origin=*`);
+        const pD=await pR.json();
+        const page=Object.values((pD.query&&pD.query.pages)||{})[0];
+        if(page&&page.extract&&page.extract.length>50){
+          const frasi=page.extract.replace(/\n/g," ").split(". ").filter(s=>s.length>15);
+          const trama=frasi.slice(0,4).join(". ")+(frasi.length>0?".":"");
+          if(!film.trama||trama.length>film.trama.length)film={...film,trama};
+          if(!trovato){
+            film={...film,titolo:best.title.replace(/ - [Ff]ilm.*/,"").replace(/ \([Ff]ilm.*?\)/,"").trim()};
+            trovato=true;
+          }
+        }
+      }
+    }catch(e){console.log("Wikipedia:",e.message);}
+
+    setBusy(false);
+    if(!trovato&&!film.trama){
+      setErr("Non trovato automaticamente — compila i dati a mano.");
+      setManual(true);setForm({...EMPTY,titolo:query});
+    }else{
+      setFound(film);setForm({...EMPTY,...film,cineforum:"",cinefamiglia:""});
+    }
+  };
+
+  const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
+  const add=()=>{
+    if(!form.titolo.trim()){setErr("Il titolo è obbligatorio.");return;}
+    if(existingTitles.has(form.titolo.toLowerCase().trim())){setErr("Film già nel database.");return;}
+    const f={...form,_custom:true};
+    if(f.mym&&f.cs)f.media=parseFloat(((f.mym+f.cs)/2).toFixed(2));
+    else if(f.mym)f.media=f.mym;
+    else if(f.cs)f.media=f.cs;
+    onAdd(f);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#16161e",border:"1px solid rgba(232,184,75,0.3)",borderRadius:14,width:"100%",maxWidth:560,maxHeight:"88vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.7)"}}>
+        <div style={{padding:"18px 22px",borderBottom:"1px solid #1e1e28",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#16161e"}}>
+          <h2 style={{margin:0,fontSize:18,color:"#e8b84b",fontFamily:"Georgia,serif"}}>🎬 Aggiungi Film</h2>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:20}}>✕</button>
+        </div>
+        <div style={{padding:"18px 22px"}}>
+          {!found&&!manual&&(
+            <div>
+              <p style={{margin:"0 0 12px",fontSize:13,color:"#777"}}>Scrivi il titolo — cerco automaticamente su iTunes e Wikipedia:</p>
+              <div style={{display:"flex",gap:8}}>
+                <input ref={ref} value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!busy&&search()}
+                  placeholder="es. Oppenheimer, C'è ancora domani…"
+                  style={{flex:1,background:"#1a1a24",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:8,padding:"9px 12px",fontSize:13}}/>
+                <button onClick={search} disabled={busy||!query.trim()} style={{background:busy?"#1a1a24":"rgba(232,184,75,0.15)",border:"1px solid rgba(232,184,75,0.4)",color:busy?"#444":"#e8b84b",borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:13,whiteSpace:"nowrap"}}>{busy?"⏳ Cerco…":"🔍 Cerca"}</button>
+              </div>
+              {err&&<p style={{margin:"8px 0 0",fontSize:12,color:"#fb923c"}}>{err}</p>}
+              <button onClick={()=>{setManual(true);setForm({...EMPTY,titolo:query});}} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:12,marginTop:12,textDecoration:"underline"}}>Inserisci manualmente →</button>
+            </div>
+          )}
+          {(found||manual)&&(
+            <div>
+              {found&&<div style={{background:"rgba(74,222,128,0.07)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
+                <p style={{margin:0,fontSize:12,color:"#4ade80"}}>✓ Film trovato — controlla e modifica se necessario</p>
+              </div>}
+              {manual&&<p style={{margin:"0 0 14px",fontSize:13,color:"#777"}}>Compila i dati del film (i voti li inserisci quando li conosci):</p>}
+              <FilmForm data={form} onChange={upd}/>
+              <div style={{marginTop:16,display:"flex",gap:8,justifyContent:"flex-end",alignItems:"center"}}>
+                {err&&<span style={{fontSize:12,color:"#fb923c",flex:1}}>{err}</span>}
+                <button onClick={()=>{setFound(null);setManual(false);setErr("");}} style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:"#777",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>← Indietro</button>
+                <button onClick={add} style={{background:"rgba(232,184,75,0.18)",border:"1px solid rgba(232,184,75,0.5)",color:"#e8b84b",borderRadius:8,padding:"8px 20px",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Aggiungi</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── EDIT MODAL ───────────────────────────────────────────────────────────
+const EditModal=({film,onClose,onSave})=>{
+  const [form,setForm]=useState({titolo:film.titolo,data:film.data||"",genere:film.genere||"",paese:film.paese||"",durata:film.durata||"",distribuzione:film.distribuzione||"",mym:film.mym,cs:film.cs,cineforum:film.cineforum||"",cinefamiglia:film.cinefamiglia||"",trama:film.trama||""});
+  const upd=(k,v)=>setForm(p=>({...p,[k]:v}));
+  const save=()=>{const u={...form};if(u.mym&&u.cs)u.media=parseFloat(((u.mym+u.cs)/2).toFixed(2));else if(u.mym)u.media=u.mym;else if(u.cs)u.media=u.cs;onSave(u);};
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={{background:"#16161e",border:"1px solid rgba(232,184,75,0.3)",borderRadius:14,width:"100%",maxWidth:560,maxHeight:"88vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.7)"}}>
+        <div style={{padding:"18px 22px",borderBottom:"1px solid #1e1e28",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#16161e"}}>
+          <h2 style={{margin:0,fontSize:17,color:"#e8b84b",fontFamily:"Georgia,serif"}}>✏️ Modifica</h2>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:20}}>✕</button>
+        </div>
+        <div style={{padding:"18px 22px"}}>
+          <FilmForm data={form} onChange={upd}/>
+          <div style={{marginTop:16,display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:"#777",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13}}>Annulla</button>
+            <button onClick={save} style={{background:"rgba(232,184,75,0.18)",border:"1px solid rgba(232,184,75,0.5)",color:"#e8b84b",borderRadius:8,padding:"8px 20px",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salva</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────
+function App(){
+  const [overrides,setOverrides]=useState(()=>LS.get("cinema_ov")||{});
+  const [custom,setCustom]=useState(()=>LS.get("cinema_custom")||[]);
+  const [search,setSearch]=useState("");
+  const [stFilter,setStFilter]=useState("tutti");
+  const [catFilter,setCatFilter]=useState("tutti");
+  const [dateFilter,setDateFilter]=useState("tutti");
+  const [sortBy,setSortBy]=useState("data");
+  const [sortDir,setSortDir]=useState("desc");
+  const [expanded,setExpanded]=useState(null);
+  const [voteInput,setVoteInput]=useState("");
+  const [addModal,setAddModal]=useState(false);
+  const [editFilm,setEditFilm]=useState(null);
+  const [toast,setToast]=useState(null);
+
+  const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
+  const saveOv=(next)=>{setOverrides(next);LS.set("cinema_ov",next);};
+  const saveCust=(next)=>{setCustom(next);LS.set("cinema_custom",next);};
+
+  const allFilms=useMemo(()=>{
+    const base=FILMS_BASE.map(f=>({...f,...(overrides[f.titolo]||{})}));
+    const cust=custom.map(f=>({...f,...(overrides[f.titolo]||{}),_custom:true}));
+    return [...base,...cust];
+  },[overrides,custom]);
+
+  const getStatus=useCallback((f)=>{
+    const ov=overrides[f.titolo]?.status;
+    if(ov==="scartato")return"scartato";
+    if(ov==="proiettato")return"proiettato";
+    if(f.voto_pubblico!=null)return"proiettato";
+    if(f.fatto==="x")return"proiettato";
+    return"normale";
+  },[overrides]);
+
+  const setStatus=(titolo,st)=>{const p=overrides[titolo]||{};saveOv({...overrides,[titolo]:{...p,status:st}});showToast(st==="proiettato"?"✓ Proiettato":st==="scartato"?"✗ Scartato":"↩ Ripristinato");};
+  const saveVote=(titolo,vote)=>{const p=overrides[titolo]||{};saveOv({...overrides,[titolo]:{...p,voto_pubblico:vote}});showToast("⭐ Voto salvato");setExpanded(null);setVoteInput("");};
+  const saveEdit=(film,updates)=>{if(film._custom){saveCust(custom.map(f=>f.titolo===film.titolo?{...f,...updates}:f));}else{const p=overrides[film.titolo]||{};saveOv({...overrides,[film.titolo]:{...p,...updates}});}setEditFilm(null);showToast("💾 Info aggiornate");};
+  const addFilm=(film)=>{saveCust([...custom,film]);setAddModal(false);showToast("🎬 Film aggiunto");};
+
+  const existingTitles=useMemo(()=>new Set(allFilms.map(f=>f.titolo.toLowerCase().trim())),[allFilms]);
+  const toggleSort=(col)=>{if(sortBy===col)setSortDir(d=>d==="asc"?"desc":"asc");else{setSortBy(col);setSortDir("desc");}};
+
+  const filtered=useMemo(()=>{
+    const now=new Date();
+    let list=allFilms.filter(f=>{
+      if(search&&!f.titolo.toLowerCase().includes(search.toLowerCase())&&!(f.genere||"").toLowerCase().includes(search.toLowerCase()))return false;
+      const st=getStatus(f);
+      if(stFilter==="proiettati"&&st!=="proiettato")return false;
+      if(stFilter==="scartati"&&st!=="scartato")return false;
+      if(stFilter==="da_vedere"&&(st==="proiettato"||st==="scartato"))return false;
+      if(catFilter==="cineforum"&&!f.cineforum)return false;
+      if(catFilter==="cinefamiglia"&&f.cinefamiglia!=="x")return false;
+      if(dateFilter!=="tutti"&&f.data){const d=new Date(f.data);if(dateFilter==="p30"&&(d<now||d>new Date(+now+30*864e5)))return false;if(dateFilter==="p90"&&(d<now||d>new Date(+now+90*864e5)))return false;if(dateFilter==="past"&&d>=now)return false;}
+      return true;
+    });
+    list.sort((a,b)=>{const m=sortDir==="asc"?1:-1;if(sortBy==="data")return m*((a.data||"0000").localeCompare(b.data||"0000"));if(sortBy==="media")return m*((a.media||0)-(b.media||0));if(sortBy==="mym")return m*((a.mym||0)-(b.mym||0));if(sortBy==="cs")return m*((a.cs||0)-(b.cs||0));if(sortBy==="voto")return m*((a.voto_pubblico||0)-(b.voto_pubblico||0));if(sortBy==="score")return m*((calcScore(a)||0)-(calcScore(b)||0));return 0;});
+    return list;
+  },[allFilms,search,stFilter,catFilter,dateFilter,sortBy,sortDir,overrides]);
+
+  const stats=useMemo(()=>{
+    const pr=allFilms.filter(f=>getStatus(f)==="proiettato");
+    const vs=pr.filter(f=>f.voto_pubblico);
+    const avg=vs.length?vs.reduce((s,f)=>s+f.voto_pubblico,0)/vs.length:0;
+    return{total:allFilms.length,proiettati:pr.length,scartati:allFilms.filter(f=>getStatus(f)==="scartato").length,conVoto:vs.length,avg};
+  },[allFilms,overrides]);
+
+  const exportCSV=()=>{
+    const rows=filtered.map(f=>[`"${f.titolo}"`,f.data,`"${f.genere||""}"`,`"${f.paese||""}"`,f.durata||"",`"${f.distribuzione||""}"`,f.mym??"",f.cs??"",f.media??"",f.voto_pubblico??"",calcScore(f)??"",getStatus(f),f.cineforum?"CF":"",f.cinefamiglia==="x"?"FAM":""].join(","));
+    const csv=[["Titolo","Data","Genere","Paese","Durata","Distribuzione","MYm","CS","Media","VotoPub","Score","Stato","CF","FAM"].join(","),...rows].join("\n");
+    const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv"})),download:"cinema.csv"});a.click();URL.revokeObjectURL(a.href);
+    showToast("📥 Export completato");
+  };
+
+  const SBtn=({col,label})=>(
+    <button onClick={()=>toggleSort(col)} style={{background:sortBy===col?"rgba(232,184,75,0.15)":"transparent",border:`1px solid ${sortBy===col?"rgba(232,184,75,0.4)":"transparent"}`,color:sortBy===col?"#e8b84b":"#666",borderRadius:6,padding:"4px 9px",cursor:"pointer",fontSize:11}}>
+      {label}{sortBy===col?(sortDir==="desc"?"↓":"↑"):""}
+    </button>
+  );
+
+  return(
+    <div style={{background:"#0d0d0f",minHeight:"100vh"}}>
+      {toast&&<div style={{position:"fixed",top:16,right:16,zIndex:9999,background:toast.type==="err"?"#450a0a":"#052e16",border:`1px solid ${toast.type==="err"?"#dc2626":"#16a34a"}`,color:"#e0e0e0",padding:"10px 18px",borderRadius:10,fontSize:13,boxShadow:"0 4px 20px rgba(0,0,0,0.5)",animation:"fadeIn .2s"}}>{toast.msg}</div>}
+      {addModal&&<AddModal onClose={()=>setAddModal(false)} onAdd={addFilm} existingTitles={existingTitles}/>}
+      {editFilm&&<EditModal film={editFilm} onClose={()=>setEditFilm(null)} onSave={u=>saveEdit(editFilm,u)}/>}
+
+      {/* HEADER */}
+      <div style={{background:"linear-gradient(180deg,#1a1008,#0d0d0f)",borderBottom:"1px solid rgba(232,184,75,0.2)",padding:"14px 22px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:26}}>🎬</span>
+          <div>
+            <h1 style={{margin:0,fontSize:20,fontWeight:700,color:"#e8b84b",fontFamily:"Georgia,serif",letterSpacing:1}}>Cinema Dashboard</h1>
+            <p style={{margin:0,fontSize:10,color:"#444",letterSpacing:1}}>DIRETTORE ARTISTICO · DATABASE FILM</p>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setAddModal(true)} style={{background:"rgba(232,184,75,0.15)",border:"1px solid rgba(232,184,75,0.45)",color:"#e8b84b",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Aggiungi Film</button>
+          <button onClick={exportCSV} style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:"#777",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:13}}>📥 CSV</button>
+        </div>
+      </div>
+
+      {/* STATS */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"1px",background:"rgba(232,184,75,0.06)",borderBottom:"1px solid rgba(232,184,75,0.08)"}}>
+        {[{l:"TOTALE FILM",v:stats.total,ic:"🎞"},{l:"PROIETTATI",v:stats.proiettati,ic:"✅",c:"#4ade80"},{l:"SCARTATI",v:stats.scartati,ic:"❌",c:"#f87171"},{l:"CON VOTO PUBBLICO",v:stats.conVoto,ic:"⭐"},{l:"MEDIA VOTO PUBBLICO",v:stats.avg>0?stats.avg.toFixed(2):"—",ic:"📊",c:SC(stats.avg)}].map((s,i)=>(
+          <div key={i} style={{background:"#111115",padding:"12px 14px",textAlign:"center"}}>
+            <div style={{fontSize:18,marginBottom:2}}>{s.ic}</div>
+            <div style={{fontSize:20,fontWeight:700,color:s.c||"#e0e0e0"}}>{s.v}</div>
+            <div style={{fontSize:"9px",color:"#444",letterSpacing:"0.7px"}}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* FILTERS */}
+      <div style={{padding:"10px 22px",background:"#111115",borderBottom:"1px solid #1e1e24",display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Cerca titolo o genere…"
+          style={{background:"#1a1a20",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:7,padding:"7px 12px",fontSize:13,flex:1,minWidth:170}}/>
+        {[{k:"tutti",l:"Tutti"},{k:"da_vedere",l:"Da vedere"},{k:"proiettati",l:"Proiettati"},{k:"scartati",l:"Scartati"}].map(({k,l})=>(
+          <button key={k} onClick={()=>setStFilter(k)} style={{background:stFilter===k?"rgba(232,184,75,0.16)":"transparent",border:`1px solid ${stFilter===k?"rgba(232,184,75,0.4)":"#2a2a35"}`,color:stFilter===k?"#e8b84b":"#666",borderRadius:7,padding:"6px 11px",cursor:"pointer",fontSize:12}}>{l}</button>
+        ))}
+        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{background:"#1a1a20",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:7,padding:"6px 10px",fontSize:12,cursor:"pointer"}}>
+          <option value="tutti">Tutte le categorie</option>
+          <option value="cineforum">Cineforum</option>
+          <option value="cinefamiglia">Cinefamiglia</option>
+        </select>
+        <select value={dateFilter} onChange={e=>setDateFilter(e.target.value)} style={{background:"#1a1a20",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:7,padding:"6px 10px",fontSize:12,cursor:"pointer"}}>
+          <option value="tutti">Tutte le date</option>
+          <option value="p30">Prossimi 30gg</option>
+          <option value="p90">Prossimi 90gg</option>
+          <option value="past">Film passati</option>
+        </select>
+        <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+          <span style={{fontSize:"10px",color:"#333",alignSelf:"center",marginRight:2}}>ORDINA:</span>
+          <SBtn col="data" label="Data"/><SBtn col="score" label="Score"/><SBtn col="media" label="Media"/>
+          <SBtn col="mym" label="MYm"/><SBtn col="cs" label="CS"/><SBtn col="voto" label="Voto"/>
+        </div>
+      </div>
+
+      {/* COL HEADERS */}
+      <div style={{display:"grid",gridTemplateColumns:"4px 1fr 46px 46px 46px 46px 46px 44px 110px",alignItems:"center",background:"#0a0a0d",borderBottom:"1px solid #1a1a22",padding:"5px 0"}}>
+        <div/><div style={{padding:"0 14px",fontSize:"9px",color:"#333"}}>FILM ({filtered.length})</div>
+        {["MYm","CS","MEDIA","PUBBL","SCORE","✏","STATO"].map(h=><div key={h} style={{textAlign:"center",fontSize:"9px",color:"#333"}}>{h}</div>)}
+      </div>
+
+      {/* LIST */}
+      {filtered.map((f,idx)=>{
+        const status=getStatus(f);
+        const score=calcScore(f);
+        const isExp=expanded===f.titolo;
+        const stripe=status==="proiettato"?"#4ade80":status==="scartato"?"#f87171":"transparent";
+        const hasInfo=!!(f.genere||f.paese);
+        return(
+          <div key={f.titolo+idx} style={{borderBottom:"1px solid #161620"}}>
+            <div onClick={()=>setExpanded(isExp?null:f.titolo)}
+              style={{display:"grid",gridTemplateColumns:"4px 1fr 46px 46px 46px 46px 46px 44px 110px",alignItems:"center",background:isExp?"#191924":idx%2?"#0f0f13":"#111115",cursor:"pointer",minHeight:50}}>
+              <div style={{height:"100%",minHeight:50,background:stripe,opacity:.55}}/>
+              <div style={{padding:"8px 14px"}}>
+                <div style={{fontSize:13,fontWeight:600,color:status==="scartato"?"#3a3a42":"#e0e0e0",textDecoration:status==="scartato"?"line-through":"none",marginBottom:2}}>{f.titolo}</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+                  {f.data&&<span style={{fontSize:"10px",color:"#444"}}>{f.data.slice(0,7)}</span>}
+                  {f.genere&&<span style={{fontSize:"10px",color:"#3a3a42"}}>{f.genere.split(",")[0].trim()}</span>}
+                  {f._custom&&<span style={{fontSize:"9px",background:"rgba(232,184,75,0.1)",color:"#e8b84b",borderRadius:3,padding:"1px 4px"}}>custom</span>}
+                  {!hasInfo&&<span style={{fontSize:"9px",background:"rgba(251,191,36,0.1)",color:"#fbbf24",borderRadius:3,padding:"1px 4px"}}>⚠ info mancanti</span>}
+                  {f.cineforum&&<span style={{fontSize:"9px",background:"rgba(129,140,248,0.1)",color:"#818cf8",borderRadius:3,padding:"1px 4px"}}>CF</span>}
+                  {f.cinefamiglia==="x"&&<span style={{fontSize:"9px",background:"rgba(251,191,36,0.1)",color:"#fbbf24",borderRadius:3,padding:"1px 4px"}}>FAM</span>}
+                </div>
+              </div>
+              <div style={{textAlign:"center"}}><SBadge value={f.mym} small/></div>
+              <div style={{textAlign:"center"}}><SBadge value={f.cs} small/></div>
+              <div style={{textAlign:"center"}}><SBadge value={f.media} small/></div>
+              <div style={{textAlign:"center"}}><SBadge value={f.voto_pubblico} small/></div>
+              <div style={{textAlign:"center"}}><RBadge score={score}/></div>
+              <div style={{textAlign:"center"}} onClick={e=>{e.stopPropagation();setEditFilm(f);}}>
+                <button style={{background:"rgba(255,255,255,0.03)",border:"1px solid #2a2a35",color:"#555",borderRadius:5,padding:"3px 7px",cursor:"pointer",fontSize:11}}>✏️</button>
+              </div>
+              <div style={{padding:"0 8px",display:"flex",alignItems:"center",gap:4}} onClick={e=>e.stopPropagation()}>
+                {status==="proiettato"&&<span style={{fontSize:"10px",color:"#4ade80",fontWeight:600}}>✓ Fatto</span>}
+                {status==="scartato"&&<span style={{fontSize:"10px",color:"#f87171",fontWeight:600}}>✗ Scartato</span>}
+                {status==="normale"&&<div style={{display:"flex",gap:3}}>
+                  <button onClick={()=>setStatus(f.titolo,"proiettato")} style={{background:"rgba(74,222,128,0.08)",border:"1px solid rgba(74,222,128,0.25)",color:"#4ade80",borderRadius:4,padding:"3px 7px",cursor:"pointer",fontSize:10}}>✓</button>
+                  <button onClick={()=>setStatus(f.titolo,"scartato")} style={{background:"rgba(248,113,113,0.08)",border:"1px solid rgba(248,113,113,0.25)",color:"#f87171",borderRadius:4,padding:"3px 7px",cursor:"pointer",fontSize:10}}>✗</button>
+                </div>}
+                {(status==="proiettato"||status==="scartato")&&<button onClick={()=>setStatus(f.titolo,"normale")} style={{background:"rgba(100,100,100,0.06)",border:"1px solid #252530",color:"#444",borderRadius:4,padding:"3px 5px",cursor:"pointer",fontSize:9}}>↩</button>}
+              </div>
+            </div>
+
+            {isExp&&(
+              <div style={{background:"#13131b",padding:"16px 22px",borderTop:"1px solid #1e1e28",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:20}}>
+                {/* Dettagli */}
+                <div>
+                  <h3 style={{margin:"0 0 10px",fontSize:11,color:"#e8b84b",textTransform:"uppercase",letterSpacing:1}}>Dettagli</h3>
+                  {[["Genere",f.genere],["Paese",f.paese],["Durata",f.durata],["Distribuzione",f.distribuzione],["Data uscita",f.data]].filter(([,v])=>v).map(([k,v])=>(
+                    <div key={k} style={{display:"flex",gap:8,marginBottom:5}}>
+                      <span style={{fontSize:"10px",color:"#3a3a4a",minWidth:80}}>{k}</span>
+                      <span style={{fontSize:"11px",color:"#888"}}>{v}</span>
+                    </div>
+                  ))}
+                  {!hasInfo&&<div style={{marginTop:8,padding:"8px 10px",background:"rgba(251,191,36,0.06)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:6}}>
+                    <p style={{margin:0,fontSize:11,color:"#fbbf24"}}>⚠ Info mancanti — clicca ✏️ per aggiungerle.</p>
+                  </div>}
+                  {f.trama&&<div style={{marginTop:10}}>
+                    <h4 style={{margin:"0 0 5px",fontSize:10,color:"#e8b84b",textTransform:"uppercase",letterSpacing:1}}>Trama</h4>
+                    <p style={{margin:0,fontSize:11,color:"#777",lineHeight:1.6}}>{f.trama}</p>
+                  </div>}
+                </div>
+                {/* Punteggi */}
+                <div>
+                  <h3 style={{margin:"0 0 10px",fontSize:11,color:"#e8b84b",textTransform:"uppercase",letterSpacing:1}}>Punteggi</h3>
+                  <div style={{display:"flex",gap:10,marginBottom:14}}>
+                    {[["MYm",f.mym],["CS",f.cs],["Media",f.media],["Pubblico",f.voto_pubblico]].map(([l,v])=>(
+                      <div key={l} style={{textAlign:"center"}}><SBadge value={v}/><div style={{fontSize:"9px",color:"#3a3a4a",marginTop:2}}>{l}</div></div>
+                    ))}
+                  </div>
+                  <h3 style={{margin:"0 0 8px",fontSize:11,color:"#e8b84b",textTransform:"uppercase",letterSpacing:1}}>Score Consigliato (1-10)</h3>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+                    <RBadge score={score}/>
+                    <span style={{fontSize:12,color:"#666"}}>{score==null?"Dati insufficienti":score>=8?"Fortemente consigliato":score>=6?"Consigliato":score>=4?"Da valutare":"Poco indicato"}</span>
+                  </div>
+                  <div style={{fontSize:"10px",color:"#444",background:"rgba(255,255,255,0.02)",borderRadius:6,padding:"8px 10px",border:"1px solid #1e1e28"}}>
+                    {[["Voto pubblico (40%)",f.voto_pubblico?`${f.voto_pubblico}/5`:"—"],["Critica online (30%)",f.media?`${f.media}/5`:"—"],["Affinità genere (15%)",(f.genere||"").split(",")[0]||"—"],["Affinità paese (10%)",(f.paese||"").split(",")[0]||"—"],["Affinità durata (5%)",f.durata||"—"]].map(([k,v])=>(
+                      <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"2px 0",borderBottom:"1px solid #1a1a22"}}>
+                        <span style={{color:"#444"}}>{k}</span><span style={{color:"#666"}}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Voto pubblico */}
+                <div>
+                  <h3 style={{margin:"0 0 10px",fontSize:11,color:"#e8b84b",textTransform:"uppercase",letterSpacing:1}}>Voto Pubblico (Tablet)</h3>
+                  <div style={{display:"flex",gap:3,marginBottom:12}}>
+                    {[1,2,3,4,5].map(s=>(
+                      <span key={s} onClick={()=>saveVote(f.titolo,s)}
+                        style={{fontSize:24,cursor:"pointer",color:f.voto_pubblico&&s<=Math.round(f.voto_pubblico)?"#e8b84b":"#1e1e28",userSelect:"none"}}>★</span>
+                    ))}
+                    {f.voto_pubblico&&<span style={{fontSize:12,color:"#666",alignSelf:"center",marginLeft:4}}>({f.voto_pubblico})</span>}
+                  </div>
+                  <div style={{display:"flex",gap:6,marginBottom:14}}>
+                    <input type="number" min="1" max="5" step="0.1" value={voteInput} onChange={e=>setVoteInput(e.target.value)} placeholder="es. 3.8"
+                      style={{background:"#1a1a24",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:6,padding:"6px 10px",width:110,fontSize:12}}/>
+                    <button onClick={()=>{const v=parseFloat(voteInput);if(!isNaN(v)&&v>=1&&v<=5)saveVote(f.titolo,v);else showToast("Voto tra 1 e 5","err");}}
+                      style={{background:"rgba(232,184,75,0.13)",border:"1px solid rgba(232,184,75,0.35)",color:"#e8b84b",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12}}>Salva</button>
+                  </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <button onClick={()=>setStatus(f.titolo,status==="proiettato"?"normale":"proiettato")} style={{background:status==="proiettato"?"rgba(74,222,128,0.15)":"rgba(74,222,128,0.05)",border:`1px solid rgba(74,222,128,${status==="proiettato"?0.45:0.18})`,color:"#4ade80",borderRadius:7,padding:"6px 11px",cursor:"pointer",fontSize:11}}>{status==="proiettato"?"↩ Togli proiettato":"✓ Segna proiettato"}</button>
+                    <button onClick={()=>setStatus(f.titolo,status==="scartato"?"normale":"scartato")} style={{background:status==="scartato"?"rgba(248,113,113,0.15)":"rgba(248,113,113,0.05)",border:`1px solid rgba(248,113,113,${status==="scartato"?0.45:0.18})`,color:"#f87171",borderRadius:7,padding:"6px 11px",cursor:"pointer",fontSize:11}}>{status==="scartato"?"↩ Ripristina":"✗ Scarta"}</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {filtered.length===0&&<div style={{textAlign:"center",padding:60,color:"#282830"}}><div style={{fontSize:36,marginBottom:10}}>🎞</div><div>Nessun film trovato</div></div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
