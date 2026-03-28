@@ -1,0 +1,36 @@
+name: Aggiorna Voti Film
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Installa Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Esegui aggiornamento
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: python update_scores.py
+
+      - name: Salva su GitHub
+        run: |
+          git config --local user.email "cinema-bot@cinema.local"
+          git config --local user.name "Cinema Bot"
+          git add scores.json
+          git diff --staged --quiet || git commit -m "Voti aggiornati $(date +'%Y-%m-%d')"
+          git push
