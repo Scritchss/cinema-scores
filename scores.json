@@ -1,6 +1,616 @@
 {
-  "aggiornato": "",
-  "totale": 0,
+  "aggiornato": "2026-03-29 08:03",
+  "totale": 87,
   "con_voto": 0,
-  "film": []
+  "film": [
+    {
+      "titolo": "Il Diavolo Veste Prada 2",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Michael",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "È l'Ultima Battuta?",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Teresa - La Madre degli Ultimi",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Super Mario Galaxy - Il Film",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Cena di Classe",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "The History of Sound - Sulle Note di un Amore",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Ella McCay - Perfettamente Imperfetta",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Idoli - Fino all'ultima corsa",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "L'Ultima Missione: Project Hail Mary",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "La Lezione",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Un Bel Giorno",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Chopin, Notturno a Parigi",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Rental Family - Nelle Vite degli Altri",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Domani Interrogo",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Mago del Cremlino - Le Origini di Putin",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Cime Tempestose",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "HAMNET - Nel nome del Figlio",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Le Cose non Dette",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "2 Cuori e 2 Capanne",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Marty Supreme",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Sentimental Value",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "La Grazia",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Prendiamoci una Pausa",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Song Sung Blue - Una Melodia d'Amore",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Ultimo Schiaffo",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "No Other Choice - Non c'è altra scelta",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Una di Famiglia",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Buen Camino",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Primavera",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "La Mia Famiglia a Taipei",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Norimberga",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Gioia Mia",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Un Inverno in Corea",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "L'Anno Nuovo che non arriva",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Eternity",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Breve Storia d'Amore",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Oi Vita Mia",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Zootropolis 2",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Maestro",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "La Voce di Hind Rajab",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "The Life of Chuck",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Tutto Quello che Resta di Te",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Duse",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Springsteen: Liberami dal Nulla",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Per Te",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Professore e il Pinguino",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "La Vita Va Così",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "L'Isola di Andrea",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Material Love",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Enzo",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "L'Ultimo Turno",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Afrodite",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Una Sconosciuta a Tunisi",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Tre Amiche",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Le Assaggiatrici",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "La Vita da Grandi",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Bambino di Cristallo",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Nibbio",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "A Real Pain",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "A Complete Unknown",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "FolleMente",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Anora",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Better Man",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Tempo che ci vuole",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Martedì e Venerdì",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Perfect Days",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Wonder: White Bird",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Ragazzo e l'Airone",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Conclave",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Una Notte a New York",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Diamanti",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "The Substance",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Francesca Cabrini",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Maestro che promise il Mare",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "L'Amore secondo Kafka",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "The Fabelmans",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "C'è ancora domani",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Oppenheimer",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Killers of the Flower Moon",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Io Capitano",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Comandante",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "THE QUIET GIRL",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Close",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "La Stranezza",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "Il Signore delle Formiche",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    },
+    {
+      "titolo": "ANATOMIA DI UNA CADUTA",
+      "mym": null,
+      "cs": null,
+      "media": null,
+      "tmdb_id": null
+    }
+  ]
 }
