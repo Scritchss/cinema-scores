@@ -182,6 +182,78 @@ const FilmForm=({data,onChange})=>(
 );
 
 // ─── ADD MODAL ────────────────────────────────────────────────────────────
+
+const GENRE_IT={"Action":"Azione","Comedy":"Commedia","Drama":"Drammatico","Thriller":"Thriller","Horror":"Horror","Romance":"Sentimentale","Animation":"Animazione","Documentary":"Documentario","Biography":"Biografico","History":"Storico","Musical":"Musicale","Fantasy":"Fantasy","Science Fiction":"Fantascienza","Adventure":"Avventura","Family":"Family","Crime":"Poliziesco","War":"Guerra","Western":"Western","Mystery":"Giallo","Sport":"Sportivo"};
+const PAESE_IT={"ITA":"Italia","USA":"USA","GBR":"Gran Bretagna","FRA":"Francia","DEU":"Germania","ESP":"Spagna","JPN":"Giappone","IRL":"Irlanda","BEL":"Belgio","DNK":"Danimarca","NOR":"Norvegia","SWE":"Svezia","CHE":"Svizzera","POL":"Polonia","AUT":"Austria","NLD":"Olanda","CAN":"Canada","AUS":"Australia","KOR":"Corea del Sud","TWN":"Taiwan","CYP":"Cipro","ROU":"Romania","TUN":"Tunisia","QAT":"Qatar","MKD":"Macedonia del Nord"};
+
+async function fetchFilmInfo(query, existing) {
+  const ex=existing||{};
+  let film={titolo:query,data:ex.data||"",genere:ex.genere||"",paese:ex.paese||"",durata:ex.durata||"",distribuzione:ex.distribuzione||"",trama:ex.trama||""};
+
+  // ── iTunes IT ──────────────────────────────────────────────────────────
+  try{
+    const r=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(query)+"&country=it&media=movie&entity=movie&limit=5");
+    const d=await r.json();
+    if(d.results&&d.results.length){
+      const b=d.results[0];
+      const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
+      const gEN=b.primaryGenreName||"";
+      const pCode=(b.country||"").toUpperCase();
+      if(!film.genere) film.genere=GENRE_IT[gEN]||gEN;
+      if(!film.paese) film.paese=PAESE_IT[pCode]||pCode;
+      if(!film.durata&&min) film.durata=min+" min";
+      if(!film.trama) film.trama=b.longDescription||b.shortDescription||"";
+      if(!film.data&&b.releaseDate) film.data=(b.releaseDate||"").slice(0,10);
+    }
+  }catch(e){}
+
+  // ── iTunes globale (fallback) ──────────────────────────────────────────
+  if(!film.trama){
+    try{
+      const r=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(query)+"&media=movie&entity=movie&limit=5");
+      const d=await r.json();
+      if(d.results&&d.results.length){
+        const b=d.results[0];
+        const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
+        const gEN=b.primaryGenreName||"";
+        const pCode=(b.country||"").toUpperCase();
+        if(!film.genere) film.genere=GENRE_IT[gEN]||gEN;
+        if(!film.paese) film.paese=PAESE_IT[pCode]||pCode;
+        if(!film.durata&&min) film.durata=min+" min";
+        if(!film.trama) film.trama=b.longDescription||b.shortDescription||"";
+        if(!film.data&&b.releaseDate) film.data=(b.releaseDate||"").slice(0,10);
+      }
+    }catch(e){}
+  }
+
+  // ── Wikipedia italiana (trama + dati mancanti) ─────────────────────────
+  try{
+    const sR=await fetch("https://it.wikipedia.org/w/api.php?action=query&list=search&srsearch="+encodeURIComponent(query+" film")+"&format=json&origin=*&srlimit=5");
+    const sD=await sR.json();
+    const results=(sD.query&&sD.query.search)||[];
+    const best=results.find(function(r){return r.title.toLowerCase().indexOf("film")!==-1||r.snippet.toLowerCase().indexOf("regia")!==-1||r.snippet.toLowerCase().indexOf("diretto")!==-1;})||results[0];
+    if(best){
+      const pR=await fetch("https://it.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles="+encodeURIComponent(best.title)+"&format=json&origin=*");
+      const pD=await pR.json();
+      const page=Object.values((pD.query&&pD.query.pages)||{})[0];
+      if(page&&page.extract&&page.extract.length>50){
+        const testo=page.extract.replace(/\n/g," ").trim();
+        const frasi=testo.split(". ").filter(function(s){return s.length>15;});
+        const trama=frasi.slice(0,4).join(". ")+(frasi.length>0?".":"");
+        if(trama.length>30&&(!film.trama||trama.length>film.trama.length)) film.trama=trama;
+        if(!film.durata){var mD=testo.match(/della durata di (\d+) minut/);if(mD)film.durata=mD[1]+" min";}
+        if(!film.genere){var mG=testo.match(/di genere ([a-zA-Z\xC0-\xFF ,]+?)(?:,| diretto| con )/i);if(mG){var g=mG[1].trim();if(g.length<50)film.genere=g.charAt(0).toUpperCase()+g.slice(1);}}
+        if(!film.paese){var mP=testo.match(/film ([a-zA-Z\xC0-\xFF]+) del \d{4}/i);if(mP){var p=mP[1];var pm={"italiano":"Italia","americano":"USA","francese":"Francia","tedesco":"Germania","spagnolo":"Spagna","giapponese":"Giappone","inglese":"Gran Bretagna","irlandese":"Irlanda","belga":"Belgio","danese":"Danimarca"};if(pm[p.toLowerCase()])film.paese=pm[p.toLowerCase()];}}
+      }
+    }
+  }catch(e){}
+
+  const trovato=!!(film.titolo&&(film.trama||film.genere||film.paese));
+  return {film:film, trovato:trovato};
+}
+
+
+
 const AddModal=({onClose,onAdd,existingTitles})=>{
   const [query,setQuery]=useState("");
   const [busy,setBusy]=useState(false);
@@ -195,98 +267,9 @@ const AddModal=({onClose,onAdd,existingTitles})=>{
   const search=async()=>{
     if(!query.trim())return;
     setBusy(true);setErr("");setFound(null);
-    let film={...EMPTY,titolo:query};
-    let trovato=false;
-
-    // Mappa generi inglese → italiano
-    const genreIT={"Action":"Azione","Comedy":"Commedia","Drama":"Drammatico","Thriller":"Thriller","Horror":"Horror","Romance":"Sentimentale","Animation":"Animazione","Documentary":"Documentario","Biography":"Biografico","History":"Storico","Musical":"Musicale","Fantasy":"Fantasy","Science Fiction":"Fantascienza","Adventure":"Avventura","Family":"Family","Crime":"Poliziesco","War":"Guerra","Western":"Western","Mystery":"Giallo","Sport":"Sportivo"};
-    // Mappa codici paese → italiano
-    const paeseIT={"ITA":"Italia","USA":"USA","GBR":"Gran Bretagna","FRA":"Francia","DEU":"Germania","ESP":"Spagna","JPN":"Giappone","IRL":"Irlanda","BEL":"Belgio","DNK":"Danimarca","NOR":"Norvegia","SWE":"Svezia","CHE":"Svizzera","POL":"Polonia","AUT":"Austria","NLD":"Olanda","CAN":"Canada","AUS":"Australia","KOR":"Corea del Sud","TWN":"Taiwan","CYP":"Cipro","ROU":"Romania","TUN":"Tunisia","QAT":"Qatar","MKD":"Macedonia del Nord"};
-
-    // iTunes IT — prima prova con country=it
-    try{
-      const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&country=it&media=movie&entity=movie&limit=5`);
-      const d=await r.json();
-      if(d.results&&d.results.length){
-        const b=d.results[0];
-        const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
-        const genereEN=b.primaryGenreName||"";
-        const genereITA=genreIT[genereEN]||genereEN;
-        const paeseCode=(b.country||"").toUpperCase();
-        const paeseITA=paeseIT[paeseCode]||paeseCode;
-        film={...film,
-          titolo:b.trackName||query,
-          data:(b.releaseDate||"").slice(0,10),
-          genere:genereITA,
-          paese:paeseITA,
-          durata:min?min+" min":"",
-          trama:b.longDescription||b.shortDescription||""
-        };
-        trovato=true;
-      }
-    }catch(e){console.log("iTunes IT:",e.message);}
-
-    // iTunes globale — fallback se non trovato con country=it
-    if(!trovato){
-      try{
-        const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=movie&entity=movie&limit=5`);
-        const d=await r.json();
-        if(d.results&&d.results.length){
-          const b=d.results[0];
-          const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
-          const genereEN=b.primaryGenreName||"";
-          const genereITA=genreIT[genereEN]||genereEN;
-          const paeseCode=(b.country||"").toUpperCase();
-          const paeseITA=paeseIT[paeseCode]||paeseCode;
-          film={...film,
-            titolo:b.trackName||query,
-            data:(b.releaseDate||"").slice(0,10),
-            genere:genereITA,
-            paese:paeseITA,
-            durata:min?min+" min":"",
-            trama:b.longDescription||b.shortDescription||""
-          };
-          trovato=true;
-        }
-      }catch(e){console.log("iTunes globale:",e.message);}
-    }
-
-    // Wikipedia italiana — per la trama
-    try{
-      const sR=await fetch(`https://it.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query+" film")}&format=json&origin=*&srlimit=5`);
-      const sD=await sR.json();
-      const results=(sD.query&&sD.query.search)||[];
-      const best=results.find(r=>r.title.toLowerCase().includes("film")||r.snippet.toLowerCase().includes("regia")||r.snippet.toLowerCase().includes("diretto"))||results[0];
-      if(best){
-        const pR=await fetch(`https://it.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(best.title)}&format=json&origin=*`);
-        const pD=await pR.json();
-        const page=Object.values((pD.query&&pD.query.pages)||{})[0];
-        if(page&&page.extract&&page.extract.length>50){
-          const testo=page.extract.replace(/\n/g," ").trim();
-          const frasi=testo.split(". ").filter(s=>s.length>15);
-          const trama=frasi.slice(0,4).join(". ")+(frasi.length>0?".":"");
-          if(!film.trama||trama.length>film.trama.length)film={...film,trama};
-          // Prova a estrarre durata dal testo Wikipedia (es. "della durata di 120 minuti")
-          if(!film.durata){
-            const mDur=testo.match(/della durata di (\d+) minut/);
-            if(mDur)film={...film,durata:mDur[1]+" min"};
-          }
-          // Prova a estrarre genere dal testo Wikipedia (es. "film del 2023 di genere drammatico")
-          if(!film.genere){
-            const mGen=testo.match(/di genere ([a-zA-ZÀ-ÿ ,]+?)(?:,| diretto| con )/i);
-            if(mGen){
-              const g=mGen[1].trim();
-              if(g.length<50)film={...film,genere:g.charAt(0).toUpperCase()+g.slice(1)};
-            }
-          }
-          if(!trovato){
-            film={...film,titolo:best.title.replace(/ - [Ff]ilm.*/,"").replace(/ \([Ff]ilm.*?\)/,"").trim()};
-            trovato=true;
-          }
-        }
-      }
-    }catch(e){console.log("Wikipedia:",e.message);}
-
+    const result=await fetchFilmInfo(query);
+    const film=result.film;
+    const trovato=result.trovato;
     setBusy(false);
     if(!trovato&&!film.trama){
       setErr("Non trovato automaticamente — compila i dati a mano.");
@@ -387,6 +370,8 @@ function App(){
   const [addModal,setAddModal]=useState(false);
   const [editFilm,setEditFilm]=useState(null);
   const [toast,setToast]=useState(null);
+  const [updating,setUpdating]=useState(false);
+  const [updateProgress,setUpdateProgress]=useState(null);
 
   const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
   const saveOv=(next)=>{setOverrides(next);LS.set("cinema_ov",next);};
@@ -411,6 +396,35 @@ function App(){
   const saveVote=(titolo,vote)=>{const p=overrides[titolo]||{};saveOv({...overrides,[titolo]:{...p,voto_pubblico:vote}});showToast("⭐ Voto salvato");setExpanded(null);setVoteInput("");};
   const saveEdit=(film,updates)=>{if(film._custom){saveCust(custom.map(f=>f.titolo===film.titolo?{...f,...updates}:f));}else{const p=overrides[film.titolo]||{};saveOv({...overrides,[film.titolo]:{...p,...updates}});}setEditFilm(null);showToast("💾 Info aggiornate");};
   const addFilm=(film)=>{saveCust([...custom,film]);setAddModal(false);showToast("🎬 Film aggiunto");};
+
+  const updateAllFilms=async()=>{
+    const daAggiornare=allFilms.filter(f=>!f.trama||!f.genere||!f.paese);
+    if(!daAggiornare.length){showToast("✓ Tutti i film hanno già le info complete");return;}
+    setUpdating(true);
+    let aggiornati=0;
+    for(let i=0;i<daAggiornare.length;i++){
+      const f=daAggiornare[i];
+      setUpdateProgress(`${i+1}/${daAggiornare.length} — ${f.titolo.slice(0,30)}…`);
+      try{
+        const {film}=await fetchFilmInfo(f.titolo, f);
+        const updates={};
+        if(!f.trama&&film.trama) updates.trama=film.trama;
+        if(!f.genere&&film.genere) updates.genere=film.genere;
+        if(!f.paese&&film.paese) updates.paese=film.paese;
+        if(!f.durata&&film.durata) updates.durata=film.durata;
+        if(!f.data&&film.data) updates.data=film.data;
+        if(Object.keys(updates).length>0){
+          if(f._custom){const nextC=custom.map(x=>x.titolo===f.titolo?{...x,...updates}:x);saveCust(nextC);}
+          else{const p=overrides[f.titolo]||{};saveOv({...overrides,[f.titolo]:{...p,...updates}});}
+          aggiornati++;
+        }
+      }catch(e){console.log("Errore aggiornamento:",f.titolo,e);}
+      await new Promise(r=>setTimeout(r,300));
+    }
+    setUpdating(false);
+    setUpdateProgress(null);
+    showToast(`✓ Aggiornati ${aggiornati} film su ${daAggiornare.length}`);
+  };
 
   const existingTitles=useMemo(()=>new Set(allFilms.map(f=>f.titolo.toLowerCase().trim())),[allFilms]);
   const toggleSort=(col)=>{if(sortBy===col)setSortDir(d=>d==="asc"?"desc":"asc");else{setSortBy(col);setSortDir("desc");}};
@@ -454,7 +468,12 @@ function App(){
 
   return(
     <div style={{background:"#0d0d0f",minHeight:"100vh"}}>
-      {toast&&<div style={{position:"fixed",top:16,right:16,zIndex:9999,background:toast.type==="err"?"#450a0a":"#052e16",border:`1px solid ${toast.type==="err"?"#dc2626":"#16a34a"}`,color:"#e0e0e0",padding:"10px 18px",borderRadius:10,fontSize:13,boxShadow:"0 4px 20px rgba(0,0,0,0.5)",animation:"fadeIn .2s"}}>{toast.msg}</div>}
+      {updateProgress&&(
+      <div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",zIndex:9999,background:"#16161e",border:"1px solid rgba(99,102,241,0.4)",color:"#818cf8",padding:"10px 20px",borderRadius:10,fontSize:13,boxShadow:"0 4px 20px rgba(0,0,0,0.5)",whiteSpace:"nowrap"}}>
+        ⏳ {updateProgress}
+      </div>
+    )}
+    {toast&&<div style={{position:"fixed",top:16,right:16,zIndex:9999,background:toast.type==="err"?"#450a0a":"#052e16",border:`1px solid ${toast.type==="err"?"#dc2626":"#16a34a"}`,color:"#e0e0e0",padding:"10px 18px",borderRadius:10,fontSize:13,boxShadow:"0 4px 20px rgba(0,0,0,0.5)",animation:"fadeIn .2s"}}>{toast.msg}</div>}
       {addModal&&<AddModal onClose={()=>setAddModal(false)} onAdd={addFilm} existingTitles={existingTitles}/>}
       {editFilm&&<EditModal film={editFilm} onClose={()=>setEditFilm(null)} onSave={u=>saveEdit(editFilm,u)}/>}
 
@@ -469,6 +488,10 @@ function App(){
         </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setAddModal(true)} style={{background:"rgba(232,184,75,0.15)",border:"1px solid rgba(232,184,75,0.45)",color:"#e8b84b",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Aggiungi Film</button>
+          <button onClick={updateAllFilms} disabled={updating} title="Aggiorna automaticamente trama e info per tutti i film che le mancano"
+            style={{background:updating?"rgba(99,102,241,0.1)":"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.4)",color:updating?"#666":"#818cf8",borderRadius:8,padding:"8px 14px",cursor:updating?"wait":"pointer",fontSize:13,whiteSpace:"nowrap"}}>
+            {updating?"⏳ Aggiorno…":"🔄 Aggiorna info"}
+          </button>
           <button onClick={exportCSV} style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:"#777",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:13}}>📥 CSV</button>
         </div>
       </div>
@@ -632,4 +655,4 @@ function App(){
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
-</html>
+</html>// ─── FETCH FILM INFO ─────────────────────────────────────────────────────────
