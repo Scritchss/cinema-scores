@@ -412,8 +412,9 @@ const FilmForm=({data,onChange})=>(
 
 // ─── ADD MODAL ────────────────────────────────────────────────────────────
 
-const GENRE_IT={"Action":"Azione","Comedy":"Commedia","Drama":"Drammatico","Thriller":"Thriller","Horror":"Horror","Romance":"Sentimentale","Animation":"Animazione","Documentary":"Documentario","Biography":"Biografico","History":"Storico","Musical":"Musicale","Fantasy":"Fantasy","Science Fiction":"Fantascienza","Adventure":"Avventura","Family":"Family","Crime":"Poliziesco","War":"Guerra","Western":"Western","Mystery":"Giallo","Sport":"Sportivo"};
-const PAESE_IT={"ITA":"Italia","USA":"USA","GBR":"Gran Bretagna","FRA":"Francia","DEU":"Germania","ESP":"Spagna","JPN":"Giappone","IRL":"Irlanda","BEL":"Belgio","DNK":"Danimarca","NOR":"Norvegia","SWE":"Svezia","CHE":"Svizzera","POL":"Polonia","AUT":"Austria","NLD":"Olanda","CAN":"Canada","AUS":"Australia","KOR":"Corea del Sud","TWN":"Taiwan","CYP":"Cipro","ROU":"Romania","TUN":"Tunisia","QAT":"Qatar","MKD":"Macedonia del Nord"};
+const GENRE_IT={"Action":"Azione","Action & Adventure":"Azione, Avventura","Comedy":"Commedia","Drama":"Drammatico","Thriller":"Thriller","Horror":"Horror","Romance":"Sentimentale","Animation":"Animazione","Anime":"Animazione","Documentary":"Documentario","Biography":"Biografico","History":"Storico","Musical":"Musicale","Music":"Musicale","Fantasy":"Fantasy","Science Fiction":"Fantascienza","Sci-Fi & Fantasy":"Fantascienza, Fantasy","Adventure":"Avventura","Family":"Family","Kids & Family":"Family","Crime":"Poliziesco","War":"Guerra","Western":"Western","Mystery":"Giallo","Sport":"Sportivo","Sports":"Sportivo","Short Films":"Cortometraggio","Special Interest":"Speciale"};
+// PAESE_IT: codici 3 lettere (usati da Wikipedia regex) + 2 lettere (ISO standard)
+const PAESE_IT={"ITA":"Italia","USA":"USA","GBR":"Gran Bretagna","FRA":"Francia","DEU":"Germania","ESP":"Spagna","JPN":"Giappone","IRL":"Irlanda","BEL":"Belgio","DNK":"Danimarca","NOR":"Norvegia","SWE":"Svezia","CHE":"Svizzera","POL":"Polonia","AUT":"Austria","NLD":"Olanda","CAN":"Canada","AUS":"Australia","KOR":"Corea del Sud","TWN":"Taiwan","CYP":"Cipro","ROU":"Romania","TUN":"Tunisia","QAT":"Qatar","MKD":"Macedonia del Nord","IT":"Italia","US":"USA","GB":"Gran Bretagna","FR":"Francia","DE":"Germania","ES":"Spagna","JP":"Giappone","IE":"Irlanda","BE":"Belgio","DK":"Danimarca","NO":"Norvegia","SE":"Svezia","CH":"Svizzera","PL":"Polonia","AT":"Austria","NL":"Olanda","CA":"Canada","AU":"Australia","KR":"Corea del Sud","TW":"Taiwan","CY":"Cipro","RO":"Romania","TN":"Tunisia","QA":"Qatar","MK":"Macedonia del Nord"};
 
 async function fetchFilmInfo(query, existing) {
   const ex=existing||{};
@@ -427,17 +428,17 @@ async function fetchFilmInfo(query, existing) {
       const b=d.results[0];
       const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
       const gEN=b.primaryGenreName||"";
-      const pCode=(b.country||"").toUpperCase();
-      if(!film.genere) film.genere=GENRE_IT[gEN]||gEN;
-      if(!film.paese) film.paese=PAESE_IT[pCode]||pCode;
+      // NOTA: b.country è il paese dello STORE iTunes (es. "ITA" se cerchi country=it),
+      // NON il paese di produzione del film — quindi non viene usato per film.paese
+      if(!film.genere&&gEN&&gEN!=="Feature Film") film.genere=GENRE_IT[gEN]||gEN;
       if(!film.durata&&min) film.durata=min+" min";
       if(!film.trama) film.trama=b.longDescription||b.shortDescription||"";
       if(!film.data&&b.releaseDate) film.data=(b.releaseDate||"").slice(0,10);
     }
   }catch(e){}
 
-  // ── iTunes globale (fallback) ──────────────────────────────────────────
-  if(!film.trama){
+  // ── iTunes globale (fallback durata/trama) ────────────────────────────
+  if(!film.trama||!film.durata){
     try{
       const r=await fetch("https://itunes.apple.com/search?term="+encodeURIComponent(query)+"&media=movie&entity=movie&limit=5");
       const d=await r.json();
@@ -445,9 +446,8 @@ async function fetchFilmInfo(query, existing) {
         const b=d.results[0];
         const min=b.trackTimeMillis?Math.round(b.trackTimeMillis/60000):null;
         const gEN=b.primaryGenreName||"";
-        const pCode=(b.country||"").toUpperCase();
-        if(!film.genere) film.genere=GENRE_IT[gEN]||gEN;
-        if(!film.paese) film.paese=PAESE_IT[pCode]||pCode;
+        // Stesso criterio: salta "Feature Film" e il country dello store
+        if(!film.genere&&gEN&&gEN!=="Feature Film") film.genere=GENRE_IT[gEN]||gEN;
         if(!film.durata&&min) film.durata=min+" min";
         if(!film.trama) film.trama=b.longDescription||b.shortDescription||"";
         if(!film.data&&b.releaseDate) film.data=(b.releaseDate||"").slice(0,10);
@@ -605,6 +605,7 @@ function App(){
   const [page,setPage]=useState(0);
 
   const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
+  const isFileProtocol=window.location.protocol==="file:";
   const saveOv=(next)=>{setOverrides(next);LS.set("cinema_ov",next);};
   const saveCust=(next)=>{setCustom(next);LS.set("cinema_custom",next);};
 
@@ -714,6 +715,12 @@ function App(){
 
   return(
     <div style={{background:"#0d0d0f",minHeight:"100vh"}}>
+      {isFileProtocol&&(
+        <div style={{background:"rgba(251,191,36,0.08)",borderBottom:"1px solid rgba(251,191,36,0.3)",padding:"8px 22px",display:"flex",alignItems:"center",gap:10,fontSize:12,color:"#fbbf24"}}>
+          <span>⚠️</span>
+          <span>Stai aprendo il file direttamente (file://). Le ricerche su iTunes/Wikipedia potrebbero non funzionare su Chrome. Per testare tutto: <code style={{background:"rgba(0,0,0,0.4)",borderRadius:4,padding:"1px 6px",fontFamily:"monospace"}}>python3 -m http.server 8000</code> nella cartella, poi apri <b>http://localhost:8000</b></span>
+        </div>
+      )}
       {updateProgress&&(
       <div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",zIndex:9999,background:"#16161e",border:"1px solid rgba(99,102,241,0.4)",color:"#818cf8",padding:"10px 20px",borderRadius:10,fontSize:13,boxShadow:"0 4px 20px rgba(0,0,0,0.5)",whiteSpace:"nowrap"}}>
         ⏳ {updateProgress}
