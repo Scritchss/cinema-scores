@@ -601,6 +601,8 @@ function App(){
   const [toast,setToast]=useState(null);
   const [updating,setUpdating]=useState(false);
   const [updateProgress,setUpdateProgress]=useState(null);
+  const [perPage,setPerPage]=useState(20);
+  const [page,setPage]=useState(0);
 
   const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
   const saveOv=(next)=>{setOverrides(next);LS.set("cinema_ov",next);};
@@ -626,12 +628,17 @@ function App(){
   const saveEdit=(film,updates)=>{if(film._custom){saveCust(custom.map(f=>f.titolo===film.titolo?{...f,...updates}:f));}else{const p=overrides[film.titolo]||{};saveOv({...overrides,[film.titolo]:{...p,...updates}});}setEditFilm(null);showToast("💾 Info aggiornate");};
   const addFilm=(film)=>{saveCust([...custom,film]);setAddModal(false);showToast("🎬 Film aggiunto");};
 
+  const overridesRef=React.useRef(overrides);
+  overridesRef.current=overrides;
+  const customRef=React.useRef(custom);
+  customRef.current=custom;
+
   const updateAllFilms=async()=>{
     const daAggiornare=allFilms.filter(f=>!f.trama||!f.genere||!f.paese);
     if(!daAggiornare.length){showToast("Tutti i film hanno gia le info complete");return;}
     setUpdating(true);
-    let newOv=Object.assign({},overrides);
-    let newCust=custom.slice();
+    let newOv=Object.assign({},overridesRef.current);
+    let newCust=customRef.current.slice();
     let aggiornati=0;
     for(let i=0;i<daAggiornare.length;i++){
       const f=daAggiornare[i];
@@ -664,7 +671,9 @@ function App(){
     showToast("Aggiornati "+aggiornati+" film su "+daAggiornare.length);
   };
   const existingTitles=useMemo(()=>new Set(allFilms.map(f=>f.titolo.toLowerCase().trim())),[allFilms]);
-  const toggleSort=(col)=>{if(sortBy===col)setSortDir(d=>d==="asc"?"desc":"asc");else{setSortBy(col);setSortDir("desc");}};
+  const toggleSort=(col)=>{setPage(0);if(sortBy===col)setSortDir(d=>d==="asc"?"desc":"asc");else{setSortBy(col);setSortDir("desc");}};
+
+  useEffect(()=>setPage(0),[search,stFilter,catFilter,dateFilter,sortBy,sortDir]);
 
   const filtered=useMemo(()=>{
     const now=new Date();
@@ -776,7 +785,26 @@ function App(){
       </div>
 
       {/* LIST */}
-      {filtered.map((f,idx)=>{
+      {/* Pagination controls */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 22px",background:"#0d0d0f",borderBottom:"1px solid #1a1a20"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:"11px",color:"#444"}}>Per pagina:</span>
+          {[20,30,50,100].map(n=>(
+            <button key={n} onClick={()=>{setPerPage(n);setPage(0);}}
+              style={{background:perPage===n?"rgba(232,184,75,0.15)":"transparent",border:`1px solid ${perPage===n?"rgba(232,184,75,0.4)":"#2a2a35"}`,color:perPage===n?"#e8b84b":"#555",borderRadius:5,padding:"3px 9px",cursor:"pointer",fontSize:11}}>{n}</button>
+          ))}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:"11px",color:"#444"}}>
+            {page*perPage+1}-{Math.min((page+1)*perPage,filtered.length)} di {filtered.length}
+          </span>
+          <button onClick={()=>setPage(p=>Math.max(0,p-1))} disabled={page===0}
+            style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:page===0?"#333":"#888",borderRadius:5,padding:"3px 10px",cursor:page===0?"default":"pointer",fontSize:12}}>‹</button>
+          <button onClick={()=>setPage(p=>Math.min(Math.ceil(filtered.length/perPage)-1,p+1))} disabled={(page+1)*perPage>=filtered.length}
+            style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:(page+1)*perPage>=filtered.length?"#333":"#888",borderRadius:5,padding:"3px 10px",cursor:(page+1)*perPage>=filtered.length?"default":"pointer",fontSize:12}}>›</button>
+        </div>
+      </div>
+      {filtered.slice(page*perPage,(page+1)*perPage).map((f,idx)=>{
         const status=getStatus(f);
         const score=calcScore(f);
         const isExp=expanded===f.titolo;
@@ -892,4 +920,3 @@ function App(){
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
-</html>// ─── FETCH FILM INFO ─────────────────────────────────────────────────────────
