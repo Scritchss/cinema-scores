@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Script solo per uso locale (non servono su GitHub)
+avvia_locale.sh
+avvia_locale.bat
+
+# File Excel locali (non necessari per il sito)
+*.xlsx
+*.xls

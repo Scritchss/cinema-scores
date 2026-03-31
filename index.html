@@ -920,6 +920,26 @@ function App(){
       })}
 
       {filtered.length===0&&<div style={{textAlign:"center",padding:60,color:"#282830"}}><div style={{fontSize:36,marginBottom:10}}>🎞</div><div>Nessun film trovato</div></div>}
+
+      {/* Pagination controls — BOTTOM */}
+      {filtered.length>0&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 22px",background:"#0d0d0f",borderTop:"1px solid #1a1a20"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:"11px",color:"#444"}}>Per pagina:</span>
+          {[20,30,50,100].map(n=>(
+            <button key={n} onClick={()=>{setPerPage(n);setPage(0);}}
+              style={{background:perPage===n?"rgba(232,184,75,0.15)":"transparent",border:`1px solid ${perPage===n?"rgba(232,184,75,0.4)":"#2a2a35"}`,color:perPage===n?"#e8b84b":"#555",borderRadius:5,padding:"3px 9px",cursor:"pointer",fontSize:11}}>{n}</button>
+          ))}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:"11px",color:"#444"}}>
+            {page*perPage+1}-{Math.min((page+1)*perPage,filtered.length)} di {filtered.length}
+          </span>
+          <button onClick={()=>{setPage(p=>Math.max(0,p-1));window.scrollTo({top:0,behavior:"smooth"});}} disabled={page===0}
+            style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:page===0?"#333":"#888",borderRadius:5,padding:"3px 10px",cursor:page===0?"default":"pointer",fontSize:12}}>‹</button>
+          <button onClick={()=>{setPage(p=>Math.min(Math.ceil(filtered.length/perPage)-1,p+1));window.scrollTo({top:0,behavior:"smooth"});}} disabled={(page+1)*perPage>=filtered.length}
+            style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:(page+1)*perPage>=filtered.length?"#333":"#888",borderRadius:5,padding:"3px 10px",cursor:(page+1)*perPage>=filtered.length?"default":"pointer",fontSize:12}}>›</button>
+        </div>
+      </div>}
     </div>
   );
 }
