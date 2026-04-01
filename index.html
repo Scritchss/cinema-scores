@@ -720,16 +720,55 @@ function App(){
   const [updateProgress,setUpdateProgress]=useState(null);
   const [perPage,setPerPage]=useState(20);
   const [page,setPage]=useState(0);
-  const [posterMap,setPosterMap]=useState({});
+  // posterMap: prima legge dal localStorage (cache persistente), poi integra da scores.json
+  const [posterMap,setPosterMap]=useState(()=>{
+    try{return JSON.parse(localStorage.getItem("cinePosterMap")||"{}");}catch(e){return {};}
+  });
+  const fetchedRef=useRef(new Set());
 
-  // Carica poster da scores.json (aggiornato dal workflow GitHub)
+  // Carica poster da scores.json se presenti (workflow TMDB)
   useEffect(()=>{
     fetch("./scores.json").then(r=>r.json()).then(d=>{
       const m={};
       (d.film||[]).forEach(f=>{if(f.poster_path)m[f.titolo]=TMDB_IMG+f.poster_path;});
-      setPosterMap(m);
+      if(Object.keys(m).length){
+        setPosterMap(p=>{
+          const next={...p,...m};
+          try{localStorage.setItem("cinePosterMap",JSON.stringify(next));}catch(e){}
+          return next;
+        });
+      }
     }).catch(()=>{});
   },[]);
+
+  // Fetch locandine mancanti da iTunes (gratuito, nessuna API key)
+  useEffect(()=>{
+    const missing=allFilms.filter(f=>!fetchedRef.current.has(f.titolo)&&!posterMap[f.titolo]);
+    if(!missing.length)return;
+    missing.forEach(f=>fetchedRef.current.add(f.titolo));
+    let cancelled=false;
+    (async()=>{
+      for(const f of missing){
+        if(cancelled)break;
+        try{
+          const q=encodeURIComponent(f.titolo);
+          const r=await fetch(`https://itunes.apple.com/search?term=${q}&media=movie&limit=5&country=it`);
+          const d=await r.json();
+          const hit=(d.results||[]).find(x=>x.artworkUrl100);
+          if(hit){
+            const url=hit.artworkUrl100.replace("100x100bb","600x900bb");
+            setPosterMap(p=>{
+              const next={...p,[f.titolo]:url};
+              try{localStorage.setItem("cinePosterMap",JSON.stringify(next));}catch(e){}
+              return next;
+            });
+          }
+        }catch(e){}
+        await new Promise(r=>setTimeout(r,120));
+      }
+    })();
+    return()=>{cancelled=true;};
+  },[allFilms.length]);
 
   const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
   const isFileProtocol=window.location.protocol==="file:";
