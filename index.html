@@ -352,13 +352,13 @@ function computeAffinities(films){
   const toAff=(map)=>{const r={};Object.entries(map).forEach(([k,{s,n}])=>{r[k]=(s/(n+3))/2;});return r;};
   return{genre:toAff(gM),country:toAff(cM),duration:toAff(dM),globalAvg};
 }
-const AFF=computeAffinities(FILMS_BASE);
-
-function calcScore(film){
+// calcScore riceve `aff` come parametro (calcolato dinamicamente nel componente)
+function calcScore(film, aff){
+  if(!aff)return null;
   let w=0,tw=0;
   const add=(s,wt)=>{w+=s*wt;tw+=wt;};
-  const baseNorm=(AFF.globalAvg-1)/4; // media globale normalizzata 0-1
-  const aff2s=(aff)=>Math.max(0,Math.min(1,baseNorm+aff)); // affinità → score 0-1
+  const baseNorm=(aff.globalAvg-1)/4;
+  const aff2s=(a)=>Math.max(0,Math.min(1,baseNorm+a));
   const hasVote=film.voto_pubblico!=null;
 
   // ── Voto pubblico (dominante quando presente) ──────────────────────────
@@ -370,18 +370,18 @@ function calcScore(film){
 
   // ── Affinità genere (predittore principale per film non ancora visti) ──
   if(film.genere){
-    const affs=(film.genere||"").split(",").map(g=>AFF.genre[g.trim()]).filter(x=>x!=null);
+    const affs=(film.genere||"").split(",").map(g=>aff.genre[g.trim()]).filter(x=>x!=null);
     if(affs.length)add(aff2s(affs.reduce((a,b)=>a+b)/affs.length),hasVote?0.15:0.40);
   }
 
   // ── Affinità paese ─────────────────────────────────────────────────────
   if(film.paese){
-    const affs=(film.paese||"").split(",").map(p=>AFF.country[p.trim()]).filter(x=>x!=null);
+    const affs=(film.paese||"").split(",").map(p=>aff.country[p.trim()]).filter(x=>x!=null);
     if(affs.length)add(aff2s(affs.reduce((a,b)=>a+b)/affs.length),hasVote?0.07:0.15);
   }
 
   // ── Affinità durata ────────────────────────────────────────────────────
-  if(film.durata){const m=parseInt(film.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';const ds=AFF.duration[b];if(ds!=null)add(aff2s(ds),hasVote?0.03:0.10);}}
+  if(film.durata){const m=parseInt(film.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';const ds=aff.duration[b];if(ds!=null)add(aff2s(ds),hasVote?0.03:0.10);}}
 
   if(tw<0.05)return null;
   return Math.max(1,Math.min(10,Math.round((w/tw)*9+1)));
@@ -643,6 +643,9 @@ function App(){
     return [...base,...cust];
   },[overrides,custom]);
 
+  // AFF dinamico: si ricalcola ogni volta che cambiano i film o i voti
+  const aff=useMemo(()=>computeAffinities(allFilms),[allFilms]);
+
   const getStatus=useCallback((f)=>{
     const ov=overrides[f.titolo]?.status;
     if(ov==="scartato")return"scartato";
@@ -717,7 +720,7 @@ function App(){
       if(dateFilter!=="tutti"&&f.data){const d=new Date(f.data);if(dateFilter==="p30"&&(d<now||d>new Date(+now+30*864e5)))return false;if(dateFilter==="p90"&&(d<now||d>new Date(+now+90*864e5)))return false;if(dateFilter==="past"&&d>=now)return false;}
       return true;
     });
-    list.sort((a,b)=>{const m=sortDir==="asc"?1:-1;if(sortBy==="data")return m*((a.data||"0000").localeCompare(b.data||"0000"));if(sortBy==="media")return m*((a.media||0)-(b.media||0));if(sortBy==="mym")return m*((a.mym||0)-(b.mym||0));if(sortBy==="cs")return m*((a.cs||0)-(b.cs||0));if(sortBy==="voto")return m*((a.voto_pubblico||0)-(b.voto_pubblico||0));if(sortBy==="score")return m*((calcScore(a)||0)-(calcScore(b)||0));return 0;});
+    list.sort((a,b)=>{const m=sortDir==="asc"?1:-1;if(sortBy==="data")return m*((a.data||"0000").localeCompare(b.data||"0000"));if(sortBy==="media")return m*((a.media||0)-(b.media||0));if(sortBy==="mym")return m*((a.mym||0)-(b.mym||0));if(sortBy==="cs")return m*((a.cs||0)-(b.cs||0));if(sortBy==="voto")return m*((a.voto_pubblico||0)-(b.voto_pubblico||0));if(sortBy==="score")return m*((calcScore(a,aff)||0)-(calcScore(b,aff)||0));return 0;});
     return list;
   },[allFilms,search,stFilter,catFilter,dateFilter,sortBy,sortDir,overrides]);
 
@@ -729,7 +732,7 @@ function App(){
   },[allFilms,overrides]);
 
   const exportCSV=()=>{
-    const rows=filtered.map(f=>[`"${f.titolo}"`,f.data,`"${f.genere||""}"`,`"${f.paese||""}"`,f.durata||"",`"${f.distribuzione||""}"`,f.mym??"",f.cs??"",f.media??"",f.voto_pubblico??"",calcScore(f)??"",getStatus(f),f.cineforum?"CF":"",f.cinefamiglia==="x"?"FAM":""].join(","));
+    const rows=filtered.map(f=>[`"${f.titolo}"`,f.data,`"${f.genere||""}"`,`"${f.paese||""}"`,f.durata||"",`"${f.distribuzione||""}"`,f.mym??"",f.cs??"",f.media??"",f.voto_pubblico??"",calcScore(f,aff)??"",getStatus(f),f.cineforum?"CF":"",f.cinefamiglia==="x"?"FAM":""].join(","));
     const csv=[["Titolo","Data","Genere","Paese","Durata","Distribuzione","MYm","CS","Media","VotoPub","Score","Stato","CF","FAM"].join(","),...rows].join("\n");
     const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv"})),download:"cinema.csv"});a.click();URL.revokeObjectURL(a.href);
     showToast("📥 Export completato");
@@ -841,7 +844,7 @@ function App(){
       </div>
       {filtered.slice(page*perPage,(page+1)*perPage).map((f,idx)=>{
         const status=getStatus(f);
-        const score=calcScore(f);
+        const score=calcScore(f,aff);
         const isExp=expanded===f.titolo;
         const stripe=status==="proiettato"?"#4ade80":status==="scartato"?"#f87171":"transparent";
         const hasInfo=!!(f.genere||f.paese);
