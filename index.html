@@ -334,27 +334,55 @@ const seen=new Set();
 const FILMS_BASE=FILMS_RAW.filter(f=>{const k=f.titolo.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
 
 // ─── AFFINITY ENGINE ──────────────────────────────────────────────────────
+// Calcola affinità come SCARTO dalla media globale dei voti pubblici.
+// Bayesian dampening (c=3): generi con pochi film vengono attenuati verso 0.
+// Risultato scalato /2 → aggiustamento max ≈ ±0.4 sul punteggio normalizzato.
 function computeAffinities(films){
   const gM={},cM={},dM={};
+  const votes=films.filter(f=>f.voto_pubblico).map(f=>f.voto_pubblico);
+  const globalAvg=votes.length?votes.reduce((a,b)=>a+b,0)/votes.length:3.5;
   films.forEach(f=>{
     const v=f.voto_pubblico;if(!v)return;
-    (f.genere||"").split(",").forEach(g=>{g=g.trim();if(!gM[g])gM[g]={s:0,n:0};gM[g].s+=v;gM[g].n++;});
-    (f.paese||"").split(",").forEach(p=>{p=p.trim();if(!cM[p])cM[p]={s:0,n:0};cM[p].s+=v;cM[p].n++;});
-    if(f.durata){const m=parseInt(f.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';if(!dM[b])dM[b]={s:0,n:0};dM[b].s+=v;dM[b].n++;}}
+    const dev=v-globalAvg;
+    (f.genere||"").split(",").forEach(g=>{g=g.trim();if(!g)return;if(!gM[g])gM[g]={s:0,n:0};gM[g].s+=dev;gM[g].n++;});
+    (f.paese||"").split(",").forEach(p=>{p=p.trim();if(!p)return;if(!cM[p])cM[p]={s:0,n:0};cM[p].s+=dev;cM[p].n++;});
+    if(f.durata){const m=parseInt(f.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';if(!dM[b])dM[b]={s:0,n:0};dM[b].s+=dev;dM[b].n++;}}
   });
-  const toSc=(map,mn)=>{const r={};Object.entries(map).forEach(([k,{s,n}])=>{if(n>=mn)r[k]=(s/n-1)/4;});return r;};
-  return{genre:toSc(gM,1),country:toSc(cM,2),duration:toSc(dM,1)};
+  // s/(n+3)/2: Bayesian dampening con c=3, poi scaling /2
+  const toAff=(map)=>{const r={};Object.entries(map).forEach(([k,{s,n}])=>{r[k]=(s/(n+3))/2;});return r;};
+  return{genre:toAff(gM),country:toAff(cM),duration:toAff(dM),globalAvg};
 }
 const AFF=computeAffinities(FILMS_BASE);
 
 function calcScore(film){
   let w=0,tw=0;
   const add=(s,wt)=>{w+=s*wt;tw+=wt;};
-  if(film.voto_pubblico!=null)add((film.voto_pubblico-1)/4,0.40);
-  if(film.media!=null)add(film.media/5,0.30);
-  if(film.genere){const ss=(film.genere||"").split(",").map(g=>AFF.genre[g.trim()]).filter(x=>x!=null);if(ss.length)add(ss.reduce((a,b)=>a+b)/ss.length,0.15);}
-  if(film.paese){const ss=(film.paese||"").split(",").map(p=>AFF.country[p.trim()]).filter(x=>x!=null);if(ss.length)add(ss.reduce((a,b)=>a+b)/ss.length,0.10);}
-  if(film.durata){const m=parseInt(film.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';const ds=AFF.duration[b];if(ds!=null)add(ds,0.05);}}
+  const baseNorm=(AFF.globalAvg-1)/4; // media globale normalizzata 0-1
+  const aff2s=(aff)=>Math.max(0,Math.min(1,baseNorm+aff)); // affinità → score 0-1
+  const hasVote=film.voto_pubblico!=null;
+
+  // ── Voto pubblico (dominante quando presente) ──────────────────────────
+  if(hasVote)add((film.voto_pubblico-1)/4,0.55);
+
+  // ── Critica: peso maggiore senza voto pubblico ─────────────────────────
+  if(film.media!=null)add(film.media/5,hasVote?0.20:0.35);
+  else{const c=[film.mym,film.cs].filter(x=>x!=null);if(c.length)add(c.reduce((a,b)=>a+b)/c.length/5,hasVote?0.15:0.25);}
+
+  // ── Affinità genere (predittore principale per film non ancora visti) ──
+  if(film.genere){
+    const affs=(film.genere||"").split(",").map(g=>AFF.genre[g.trim()]).filter(x=>x!=null);
+    if(affs.length)add(aff2s(affs.reduce((a,b)=>a+b)/affs.length),hasVote?0.15:0.40);
+  }
+
+  // ── Affinità paese ─────────────────────────────────────────────────────
+  if(film.paese){
+    const affs=(film.paese||"").split(",").map(p=>AFF.country[p.trim()]).filter(x=>x!=null);
+    if(affs.length)add(aff2s(affs.reduce((a,b)=>a+b)/affs.length),hasVote?0.07:0.15);
+  }
+
+  // ── Affinità durata ────────────────────────────────────────────────────
+  if(film.durata){const m=parseInt(film.durata);if(!isNaN(m)){const b=m<90?'<90':m<=110?'90-110':m<=130?'111-130':m<=150?'131-150':'>150';const ds=AFF.duration[b];if(ds!=null)add(aff2s(ds),hasVote?0.03:0.10);}}
+
   if(tw<0.05)return null;
   return Math.max(1,Math.min(10,Math.round((w/tw)*9+1)));
 }
