@@ -47,15 +47,16 @@ def cerca(titolo):
         if not results:
             r = tmdb_get("/search/movie", {"query":titolo})
             results = r.get("results",[])
-        if not results: return None,None,None
+        if not results: return None,None,None,None
         film = next((x for x in results[:3] if x.get("vote_count",0)>=5), results[0])
+        poster = film.get("poster_path")          # path relativo, es. "/abc123.jpg"
         vote = film.get("vote_average",0)
-        if vote==0 or film.get("vote_count",0)<3: return None,None,film.get("id")
+        if vote==0 or film.get("vote_count",0)<3: return None,None,film.get("id"),poster
         v5 = round(vote/2, 1)
-        return v5, v5, film.get("id")
+        return v5, v5, film.get("id"), poster
     except Exception as e:
         print(f"    ERRORE: {e}")
-        return None,None,None
+        return None,None,None,None
 
 def load():
     try:
@@ -77,11 +78,13 @@ def main():
             continue
         print(f"  CERCA {titolo}")
         if TMDB_KEY:
-            mym,cs,tid = cerca(titolo)
+            mym,cs,tid,poster = cerca(titolo)
         else:
-            mym,cs,tid = None,None,None
+            mym,cs,tid,poster = None,None,None,None
         media = round((mym+cs)/2,1) if mym and cs else (mym or cs)
-        film_finali.append({"titolo":titolo,"mym":mym,"cs":cs,"media":media,"tmdb_id":tid})
+        # Mantieni poster_path esistente se il nuovo è None
+        poster = poster or ex.get("poster_path")
+        film_finali.append({"titolo":titolo,"mym":mym,"cs":cs,"media":media,"tmdb_id":tid,"poster_path":poster})
         if mym: print(f"    ✓ {mym}/5")
         else: print(f"    — non trovato")
         time.sleep(0.25)

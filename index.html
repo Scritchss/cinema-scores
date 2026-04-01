@@ -15,6 +15,18 @@
   ::-webkit-scrollbar{width:5px;height:5px;background:#0d0d0f}
   ::-webkit-scrollbar-thumb{background:#1e1e28;border-radius:3px}
   @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  /* Mobile responsive */
+  @media(max-width:640px){
+    .desktop-only{display:none!important}
+    .mobile-cards{display:grid!important}
+    .stats-grid{grid-template-columns:repeat(3,1fr)!important}
+    .filters-bar{padding:8px 10px!important}
+    .pagination-bar{padding:6px 10px!important}
+  }
+  @media(min-width:641px){
+    .mobile-only{display:none!important}
+    .mobile-cards{display:none!important}
+  }
 </style>
 </head>
 <body>
@@ -22,6 +34,7 @@
 
 <script type="text/babel">
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
+const TMDB_IMG="https://image.tmdb.org/t/p/w342";
 
 // ─── DATI FILM BASE ────────────────────────────────────────────────────────
 const FILMS_RAW = [
@@ -511,6 +524,82 @@ async function fetchFilmInfo(query, existing) {
 
 
 
+// ─── POSTER PLACEHOLDER ───────────────────────────────────────────────────
+const PosterPlaceholder=({style={}})=>(
+  <div style={{background:"#1a1a24",display:"flex",alignItems:"center",justifyContent:"center",...style}}>
+    <span style={{fontSize:28,opacity:0.2}}>🎬</span>
+  </div>
+);
+
+// ─── MOBILE CARD ──────────────────────────────────────────────────────────
+const MobileCard=({f,score,status,posterUrl,isExp,onToggle,onVote,voteInput,setVoteInput,setStatus})=>{
+  const stripeColor=status==="proiettato"?"#4ade80":status==="scartato"?"#f87171":null;
+  return(
+    <div onClick={onToggle} style={{borderRadius:10,overflow:"hidden",background:"#16161e",border:`1px solid ${isExp?"rgba(232,184,75,0.3)":"#1e1e28"}`,cursor:"pointer",animation:"fadeIn .15s",gridColumn:isExp?"1/-1":"auto",display:isExp?"flex":"block"}}>
+      {/* Poster */}
+      <div style={{position:"relative",aspectRatio:isExp?"unset":"2/3",overflow:"hidden",flexShrink:0,width:isExp?100:"auto",height:isExp?140:"auto"}}>
+        {posterUrl
+          ? <img src={posterUrl} alt={f.titolo} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} loading="lazy" onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="flex";}} />
+          : null}
+        <PosterPlaceholder style={{position:"absolute",inset:0,display:posterUrl?"none":"flex"}}/>
+        {/* Status badge */}
+        {stripeColor&&<div style={{position:"absolute",top:6,left:6,background:stripeColor,borderRadius:4,padding:"2px 6px",fontSize:9,fontWeight:700,color:"#000"}}>
+          {status==="proiettato"?"✓":"✗"}
+        </div>}
+        {/* Score badge */}
+        {score!=null&&!isExp&&<div style={{position:"absolute",top:6,right:6}}><RBadge score={score}/></div>}
+        {/* Gradient overlay (collapsed only) */}
+        {!isExp&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:80,background:"linear-gradient(transparent,rgba(0,0,0,0.92))",pointerEvents:"none"}}/>}
+        {/* Title + stars (collapsed only) */}
+        {!isExp&&<div style={{position:"absolute",bottom:8,left:8,right:8}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#e0e0e0",lineHeight:1.3,marginBottom:3,textShadow:"0 1px 3px rgba(0,0,0,0.8)"}}>{f.titolo}</div>
+          {f.voto_pubblico!=null&&<div style={{display:"flex",gap:1}}>
+            {[1,2,3,4,5].map(s=><span key={s} style={{fontSize:10,color:s<=Math.round(f.voto_pubblico)?"#e8b84b":"rgba(255,255,255,0.2)"}}>★</span>)}
+          </div>}
+        </div>}
+      </div>
+      {/* Pannello espanso — orizzontale full-width */}
+      {isExp&&<div onClick={e=>e.stopPropagation()} style={{flex:1,padding:"12px 14px",display:"flex",flexDirection:"column",justifyContent:"space-between",minWidth:0}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:"#e0e0e0",marginBottom:2,lineHeight:1.3}}>{f.titolo}</div>
+          {f.genere&&<div style={{fontSize:10,color:"#555",marginBottom:10}}>{f.genere}</div>}
+          {/* Score badge + label */}
+          {score!=null&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <RBadge score={score}/>
+            <span style={{fontSize:11,color:"#555"}}>{score>=8?"Consigliato":score>=6?"Da valutare":"Meno indicato"}</span>
+          </div>}
+        </div>
+        {/* Stelle voto */}
+        <div>
+          <div style={{fontSize:10,color:"#e8b84b",marginBottom:6,fontWeight:600}}>VOTO PUBBLICO</div>
+          <div style={{display:"flex",gap:3,marginBottom:8}}>
+            {[1,2,3,4,5].map(s=>(
+              <span key={s} onClick={()=>onVote(s)}
+                style={{fontSize:32,cursor:"pointer",color:f.voto_pubblico&&s<=Math.round(f.voto_pubblico)?"#e8b84b":"#2a2a35",userSelect:"none",lineHeight:1}}>★</span>
+            ))}
+            {f.voto_pubblico!=null&&<span style={{fontSize:12,color:"#666",alignSelf:"center",marginLeft:4}}>({f.voto_pubblico})</span>}
+          </div>
+          <div style={{display:"flex",gap:6,marginBottom:8}}>
+            <input type="number" min="1" max="5" step="0.1" value={voteInput} onChange={e=>setVoteInput(e.target.value)}
+              placeholder="es. 3.8" onClick={e=>e.stopPropagation()}
+              style={{background:"#1a1a24",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:6,padding:"6px 10px",width:80,fontSize:13}}/>
+            <button onClick={e=>{e.stopPropagation();const v=parseFloat(voteInput);if(!isNaN(v)&&v>=1&&v<=5)onVote(v);}}
+              style={{background:"rgba(232,184,75,0.13)",border:"1px solid rgba(232,184,75,0.35)",color:"#e8b84b",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:13,flex:1,fontWeight:600}}>Salva</button>
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={e=>{e.stopPropagation();setStatus(f.titolo,status==="proiettato"?"normale":"proiettato");}}
+              style={{flex:1,background:status==="proiettato"?"rgba(74,222,128,0.15)":"rgba(74,222,128,0.05)",border:"1px solid rgba(74,222,128,0.3)",color:"#4ade80",borderRadius:7,padding:"7px 4px",cursor:"pointer",fontSize:11}}>
+              {status==="proiettato"?"↩ Rimuovi":"✓ Proiettato"}</button>
+            <button onClick={e=>{e.stopPropagation();setStatus(f.titolo,status==="scartato"?"normale":"scartato");}}
+              style={{flex:1,background:status==="scartato"?"rgba(248,113,113,0.15)":"rgba(248,113,113,0.05)",border:"1px solid rgba(248,113,113,0.3)",color:"#f87171",borderRadius:7,padding:"7px 4px",cursor:"pointer",fontSize:11}}>
+              {status==="scartato"?"↩ Ripristina":"✗ Scarta"}</button>
+          </div>
+        </div>
+      </div>}
+    </div>
+  );
+};
+
 const AddModal=({onClose,onAdd,existingTitles})=>{
   const [query,setQuery]=useState("");
   const [busy,setBusy]=useState(false);
@@ -631,6 +720,16 @@ function App(){
   const [updateProgress,setUpdateProgress]=useState(null);
   const [perPage,setPerPage]=useState(20);
   const [page,setPage]=useState(0);
+  const [posterMap,setPosterMap]=useState({});
+
+  // Carica poster da scores.json (aggiornato dal workflow GitHub)
+  useEffect(()=>{
+    fetch("./scores.json").then(r=>r.json()).then(d=>{
+      const m={};
+      (d.film||[]).forEach(f=>{if(f.poster_path)m[f.titolo]=TMDB_IMG+f.poster_path;});
+      setPosterMap(m);
+    }).catch(()=>{});
+  },[]);
 
   const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
   const isFileProtocol=window.location.protocol==="file:";
@@ -762,26 +861,26 @@ function App(){
       {editFilm&&<EditModal film={editFilm} onClose={()=>setEditFilm(null)} onSave={u=>saveEdit(editFilm,u)}/>}
 
       {/* HEADER */}
-      <div style={{background:"linear-gradient(180deg,#1a1008,#0d0d0f)",borderBottom:"1px solid rgba(232,184,75,0.2)",padding:"14px 22px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontSize:26}}>🎬</span>
+      <div style={{background:"linear-gradient(180deg,#1a1008,#0d0d0f)",borderBottom:"1px solid rgba(232,184,75,0.2)",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:24}}>🎬</span>
           <div>
-            <h1 style={{margin:0,fontSize:20,fontWeight:700,color:"#e8b84b",fontFamily:"Georgia,serif",letterSpacing:1}}>Cinema Dashboard</h1>
-            <p style={{margin:0,fontSize:10,color:"#444",letterSpacing:1}}>DIRETTORE ARTISTICO · DATABASE FILM</p>
+            <h1 style={{margin:0,fontSize:18,fontWeight:700,color:"#e8b84b",fontFamily:"Georgia,serif",letterSpacing:1}}>Cinema Dashboard</h1>
+            <p style={{margin:0,fontSize:9,color:"#444",letterSpacing:1}} className="desktop-only">DIRETTORE ARTISTICO · DATABASE FILM</p>
           </div>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>setAddModal(true)} style={{background:"rgba(232,184,75,0.15)",border:"1px solid rgba(232,184,75,0.45)",color:"#e8b84b",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Aggiungi Film</button>
-          <button onClick={updateAllFilms} disabled={updating} title="Aggiorna automaticamente trama e info per tutti i film che le mancano"
-            style={{background:updating?"rgba(99,102,241,0.1)":"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.4)",color:updating?"#666":"#818cf8",borderRadius:8,padding:"8px 14px",cursor:updating?"wait":"pointer",fontSize:13,whiteSpace:"nowrap"}}>
-            {updating?"⏳ Aggiorno…":"🔄 Aggiorna info"}
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <button onClick={()=>setAddModal(true)} style={{background:"rgba(232,184,75,0.15)",border:"1px solid rgba(232,184,75,0.45)",color:"#e8b84b",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Film</button>
+          <button onClick={updateAllFilms} disabled={updating} title="Aggiorna automaticamente trama e info per tutti i film che le mancano" className="desktop-only"
+            style={{background:updating?"rgba(99,102,241,0.1)":"rgba(99,102,241,0.15)",border:"1px solid rgba(99,102,241,0.4)",color:updating?"#666":"#818cf8",borderRadius:8,padding:"8px 12px",cursor:updating?"wait":"pointer",fontSize:13,whiteSpace:"nowrap"}}>
+            {updating?"⏳…":"🔄 Aggiorna"}
           </button>
-          <button onClick={exportCSV} style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:"#777",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:13}}>📥 CSV</button>
+          <button onClick={exportCSV} className="desktop-only" style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:"#777",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:13}}>📥 CSV</button>
         </div>
       </div>
 
       {/* STATS */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"1px",background:"rgba(232,184,75,0.06)",borderBottom:"1px solid rgba(232,184,75,0.08)"}}>
+      <div className="stats-grid" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"1px",background:"rgba(232,184,75,0.06)",borderBottom:"1px solid rgba(232,184,75,0.08)"}}>
         {[{l:"TOTALE FILM",v:stats.total,ic:"🎞"},{l:"PROIETTATI",v:stats.proiettati,ic:"✅",c:"#4ade80"},{l:"SCARTATI",v:stats.scartati,ic:"❌",c:"#f87171"},{l:"CON VOTO PUBBLICO",v:stats.conVoto,ic:"⭐"},{l:"MEDIA VOTO PUBBLICO",v:stats.avg>0?stats.avg.toFixed(2):"—",ic:"📊",c:SC(stats.avg)}].map((s,i)=>(
           <div key={i} style={{background:"#111115",padding:"12px 14px",textAlign:"center"}}>
             <div style={{fontSize:18,marginBottom:2}}>{s.ic}</div>
@@ -792,7 +891,7 @@ function App(){
       </div>
 
       {/* FILTERS */}
-      <div style={{padding:"10px 22px",background:"#111115",borderBottom:"1px solid #1e1e24",display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
+      <div className="filters-bar" style={{padding:"10px 22px",background:"#111115",borderBottom:"1px solid #1e1e24",display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Cerca titolo o genere…"
           style={{background:"#1a1a20",border:"1px solid #2a2a35",color:"#e0e0e0",borderRadius:7,padding:"7px 12px",fontSize:13,flex:1,minWidth:170}}/>
         {[{k:"tutti",l:"Tutti"},{k:"da_vedere",l:"Da vedere"},{k:"proiettati",l:"Proiettati"},{k:"scartati",l:"Scartati"}].map(({k,l})=>(
@@ -817,14 +916,15 @@ function App(){
       </div>
 
       {/* COL HEADERS */}
-      <div style={{display:"grid",gridTemplateColumns:"4px 1fr 46px 46px 46px 46px 46px 44px 110px",alignItems:"center",background:"#0a0a0d",borderBottom:"1px solid #1a1a22",padding:"5px 0"}}>
-        <div/><div style={{padding:"0 14px",fontSize:"9px",color:"#333"}}>FILM ({filtered.length})</div>
+      <div className="desktop-only" style={{display:"grid",gridTemplateColumns:"4px 48px 1fr 46px 46px 46px 46px 46px 44px 110px",alignItems:"center",background:"#0a0a0d",borderBottom:"1px solid #1a1a22",padding:"5px 0"}}>
+        <div/><div/>
+        <div style={{padding:"0 14px",fontSize:"9px",color:"#333"}}>FILM ({filtered.length})</div>
         {["MYm","CS","MEDIA","PUBBL","SCORE","✏","STATO"].map(h=><div key={h} style={{textAlign:"center",fontSize:"9px",color:"#333"}}>{h}</div>)}
       </div>
 
       {/* LIST */}
       {/* Pagination controls */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 22px",background:"#0d0d0f",borderBottom:"1px solid #1a1a20"}}>
+      <div className="pagination-bar" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 22px",background:"#0d0d0f",borderBottom:"1px solid #1a1a20"}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <span style={{fontSize:"11px",color:"#444"}}>Per pagina:</span>
           {[20,30,50,100].map(n=>(
@@ -842,17 +942,26 @@ function App(){
             style={{background:"rgba(255,255,255,0.04)",border:"1px solid #2a2a35",color:(page+1)*perPage>=filtered.length?"#333":"#888",borderRadius:5,padding:"3px 10px",cursor:(page+1)*perPage>=filtered.length?"default":"pointer",fontSize:12}}>›</button>
         </div>
       </div>
+      {/* Desktop list */}
+      <div className="desktop-only">
       {filtered.slice(page*perPage,(page+1)*perPage).map((f,idx)=>{
         const status=getStatus(f);
         const score=calcScore(f,aff);
         const isExp=expanded===f.titolo;
         const stripe=status==="proiettato"?"#4ade80":status==="scartato"?"#f87171":"transparent";
         const hasInfo=!!(f.genere||f.paese);
+        const posterUrl=posterMap[f.titolo]||null;
         return(
           <div key={f.titolo+idx} style={{borderBottom:"1px solid #161620"}}>
             <div onClick={()=>setExpanded(isExp?null:f.titolo)}
-              style={{display:"grid",gridTemplateColumns:"4px 1fr 46px 46px 46px 46px 46px 44px 110px",alignItems:"center",background:isExp?"#191924":idx%2?"#0f0f13":"#111115",cursor:"pointer",minHeight:50}}>
+              style={{display:"grid",gridTemplateColumns:"4px 48px 1fr 46px 46px 46px 46px 46px 44px 110px",alignItems:"center",background:isExp?"#191924":idx%2?"#0f0f13":"#111115",cursor:"pointer",minHeight:50}}>
               <div style={{height:"100%",minHeight:50,background:stripe,opacity:.55}}/>
+              {/* Mini poster */}
+              <div style={{width:48,height:50,overflow:"hidden",flexShrink:0}}>
+                {posterUrl
+                  ? <img src={posterUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} loading="lazy" onError={e=>{e.target.style.display="none";}}/>
+                  : <div style={{width:"100%",height:"100%",background:"#1a1a24",display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:16,opacity:0.15}}>🎬</span></div>}
+              </div>
               <div style={{padding:"8px 14px"}}>
                 <div style={{fontSize:13,fontWeight:600,color:status==="scartato"?"#3a3a42":"#e0e0e0",textDecoration:status==="scartato"?"line-through":"none",marginBottom:2}}>{f.titolo}</div>
                 <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
@@ -949,11 +1058,34 @@ function App(){
           </div>
         );
       })}
-
       {filtered.length===0&&<div style={{textAlign:"center",padding:60,color:"#282830"}}><div style={{fontSize:36,marginBottom:10}}>🎞</div><div>Nessun film trovato</div></div>}
+      </div>{/* end desktop-only */}
+
+      {/* MOBILE CARD GRID */}
+      <div className="mobile-cards" style={{gridTemplateColumns:"repeat(2,1fr)",gap:10,padding:10,display:"none"}}>
+        {filtered.length===0
+          ? <div style={{gridColumn:"1/-1",textAlign:"center",padding:60,color:"#282830"}}><div style={{fontSize:36,marginBottom:10}}>🎞</div><div>Nessun film trovato</div></div>
+          : filtered.slice(page*perPage,(page+1)*perPage).map((f,idx)=>{
+              const status=getStatus(f);
+              const score=calcScore(f,aff);
+              const isExp=expanded===f.titolo;
+              const posterUrl=posterMap[f.titolo]||null;
+              return(
+                <MobileCard key={f.titolo+idx}
+                  f={f} score={score} status={status} posterUrl={posterUrl}
+                  isExp={isExp}
+                  onToggle={()=>setExpanded(isExp?null:f.titolo)}
+                  onVote={v=>saveVote(f.titolo,v)}
+                  voteInput={voteInput} setVoteInput={setVoteInput}
+                  setStatus={setStatus}
+                />
+              );
+            })
+        }
+      </div>
 
       {/* Pagination controls — BOTTOM */}
-      {filtered.length>0&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 22px",background:"#0d0d0f",borderTop:"1px solid #1a1a20"}}>
+      {filtered.length>0&&<div className="pagination-bar" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 22px",background:"#0d0d0f",borderTop:"1px solid #1a1a20"}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <span style={{fontSize:"11px",color:"#444"}}>Per pagina:</span>
           {[20,30,50,100].map(n=>(
