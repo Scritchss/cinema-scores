@@ -720,6 +720,20 @@ function App(){
   const [updateProgress,setUpdateProgress]=useState(null);
   const [perPage,setPerPage]=useState(20);
   const [page,setPage]=useState(0);
+  const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
+  const isFileProtocol=window.location.protocol==="file:";
+  const saveOv=(next)=>{setOverrides(next);LS.set("cinema_ov",next);};
+  const saveCust=(next)=>{setCustom(next);LS.set("cinema_custom",next);};
+
+  const allFilms=useMemo(()=>{
+    const base=FILMS_BASE.map(f=>({...f,...(overrides[f.titolo]||{})}));
+    const cust=custom.map(f=>({...f,...(overrides[f.titolo]||{}),_custom:true}));
+    return [...base,...cust];
+  },[overrides,custom]);
+
+  // AFF dinamico: si ricalcola ogni volta che cambiano i film o i voti
+  const aff=useMemo(()=>computeAffinities(allFilms),[allFilms]);
+
   // posterMap: prima legge dal localStorage (cache persistente), poi integra da scores.json
   const [posterMap,setPosterMap]=useState(()=>{
     try{return JSON.parse(localStorage.getItem("cinePosterMap")||"{}");}catch(e){return {};}
@@ -769,20 +783,6 @@ function App(){
     })();
     return()=>{cancelled=true;};
   },[allFilms.length]);
-
-  const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2500);};
-  const isFileProtocol=window.location.protocol==="file:";
-  const saveOv=(next)=>{setOverrides(next);LS.set("cinema_ov",next);};
-  const saveCust=(next)=>{setCustom(next);LS.set("cinema_custom",next);};
-
-  const allFilms=useMemo(()=>{
-    const base=FILMS_BASE.map(f=>({...f,...(overrides[f.titolo]||{})}));
-    const cust=custom.map(f=>({...f,...(overrides[f.titolo]||{}),_custom:true}));
-    return [...base,...cust];
-  },[overrides,custom]);
-
-  // AFF dinamico: si ricalcola ogni volta che cambiano i film o i voti
-  const aff=useMemo(()=>computeAffinities(allFilms),[allFilms]);
 
   const getStatus=useCallback((f)=>{
     const ov=overrides[f.titolo]?.status;
